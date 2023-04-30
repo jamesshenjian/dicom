@@ -28,10 +28,18 @@ type Dataset struct {
 // FindElementByTag searches through the dataset and returns a pointer to the matching element.
 // It DOES NOT search within Sequences as well.
 func (d *Dataset) FindElementByTag(tag tag.Tag) (*Element, error) {
-	if ele, ok := d.Elements[tag]; ok {
-		return ele, nil
+	if elem, ok := d.Elements[tag]; ok {
+		return elem, nil
 	}
 	return nil, ErrorElementNotFound
+}
+
+func (d *Dataset) Get(tag tag.Tag) (interface{}, error) {
+	elem, err := d.FindElementByTag(tag)
+	if err != nil {
+		return nil, err
+	}
+	return elem.Value.GetValue(), nil
 }
 
 func (d *Dataset) transferSyntax() (binary.ByteOrder, bool, error) {
