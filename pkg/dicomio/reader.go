@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 
 	"github.com/jamesshenjian/dicom/pkg/charset"
 	"golang.org/x/text/encoding"
@@ -189,7 +188,7 @@ func (r *reader) Skip(n int64) error {
 		return ErrorInsufficientBytesLeft
 	}
 
-	_, err := io.CopyN(ioutil.Discard, r, n)
+	_, err := io.CopyN(io.Discard, r, n)
 
 	return err
 }
