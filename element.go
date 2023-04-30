@@ -267,6 +267,14 @@ func (s *SequenceItemValue) ValueType() ValueType { return SequenceItem }
 // (see the ValueType godoc).
 func (s *SequenceItemValue) GetValue() interface{} { return s.elements }
 
+func (s *SequenceItemValue) Get(tag tag.Tag) (Value, error) {
+	elem, ok := s.elements[tag]
+	if !ok {
+		return nil, ErrorElementNotFound
+	}
+	return elem.Value, nil
+}
+
 // String is used to get a string representation of this struct.
 func (s *SequenceItemValue) String() string {
 	// TODO: consider adding more sophisticated formatting
