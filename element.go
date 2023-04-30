@@ -275,6 +275,17 @@ func (s *SequenceItemValue) Get(tag tag.Tag) (interface{}, error) {
 	return elem.Value.GetValue(), nil
 }
 
+// add an element. also has the effect of overwriting a tag which already exist
+func (s *SequenceItemValue) AddElement(atag tag.Tag, elem *Element) {
+	if s.elements == nil {
+		s.elements = make(map[tag.Tag]*Element)
+	}
+	if _, ok := s.elements[atag]; ok {
+		log.Println("Warning: overwrite an existing element with same tag")
+	}
+	s.elements[atag] = elem
+}
+
 // String is used to get a string representation of this struct.
 func (s *SequenceItemValue) String() string {
 	// TODO: consider adding more sophisticated formatting

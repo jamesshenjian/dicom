@@ -1,13 +1,6 @@
-<p align="center">
-  <img src="https://suyashkumar.com/assets/img/magnetic-resonance.png" width="125px"/>
-  <h3 align="center">dicom</h3>
-  <p align="center">High Performance Golang DICOM Medical Image Parser<p>
-  <p align="center"> 
-    <a href="https://github.com/suyashkumar/dicom/actions"><img src="https://github.com/suyashkumar/dicom/workflows/build/badge.svg" /></a> 
-    <a href="https://godoc.org/github.com/suyashkumar/dicom"><img src="https://godoc.org/github.com/suyashkumar/dicom?status.svg" alt="" /></a>
-    <a href="https://goreportcard.com/report/github.com/suyashkumar/dicom"><img src="https://goreportcard.com/badge/github.com/suyashkumar/dicom" alt=""></a> 
-  </p>
-</p>
+## Important notes
+Major change to dataset struct, from a slice to a map type.
+Json mashalling is currently not working due to this change.
 
 :eyes: __v1.0__ just released!
 

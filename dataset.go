@@ -25,6 +25,12 @@ type Dataset struct {
 	Elements map[tag.Tag]*Element `json:"elements"`
 }
 
+func NewDataset() *Dataset {
+	d := new(Dataset)
+	d.Elements = make(map[tag.Tag]*Element)
+	return d
+}
+
 // FindElementByTag searches through the dataset and returns a pointer to the matching element.
 // It DOES NOT search within Sequences as well.
 func (d *Dataset) FindElementByTag(tag tag.Tag) (*Element, error) {
@@ -40,6 +46,14 @@ func (d *Dataset) Get(tag tag.Tag) (interface{}, error) {
 		return nil, err
 	}
 	return elem.Value.GetValue(), nil
+}
+
+// create a new element or update an existing element with same tag
+func (d *Dataset) Set(atag tag.Tag, elem *Element) {
+	if d.Elements == nil {
+		d.Elements = make(map[tag.Tag]*Element)
+	}
+	d.Elements[atag] = elem
 }
 
 func (d *Dataset) transferSyntax() (binary.ByteOrder, bool, error) {
