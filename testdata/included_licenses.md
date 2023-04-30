@@ -10,6 +10,7 @@ Obtained from: https://github.com/cornerstonejs/dicomParser/blob/master/testImag
 
 The MIT License (MIT)
 
+
 Copyright (c) 2014 Chris Hafey (chafey@gmail.com)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy

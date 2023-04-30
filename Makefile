@@ -24,6 +24,7 @@ run:
 	make build
 	./${BINARY}
 
+
 .PHONY: release
 release:
 	go mod download

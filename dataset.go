@@ -70,6 +70,104 @@ func (d *Dataset) MustGetInt(tag tag.Tag) int {
 	return 0
 }
 
+func (d *Dataset) MustGetIntSlice(tag tag.Tag) []int {
+	elem, err := d.FindElementByTag(tag)
+	if err != nil {
+		log.Panic(err)
+	}
+	vtype := elem.Value.ValueType()
+	if vtype == Strings {
+		strs := elem.Value.GetValue().([]string)
+		ints := make([]int, len(strs))
+		for i := 0; i < len(strs); i++ {
+			ival, err := strconv.ParseInt(strs[i], 10, 32)
+			if err != nil {
+				log.Panic(err)
+			}
+			ints[i] = int(ival)
+		}
+		return ints
+	} else if vtype == Ints {
+		return elem.Value.GetValue().([]int)
+	} else {
+		log.Panic("Value type not ints")
+	}
+	return nil
+}
+
+func (d *Dataset) MustGetFloat(tag tag.Tag) float32 {
+	elem, err := d.FindElementByTag(tag)
+	if err != nil {
+		log.Panic(err)
+	}
+	vtype := elem.Value.ValueType()
+	if vtype == Strings {
+		val, err := strconv.ParseFloat(elem.Value.GetValue().([]string)[0], 32)
+		if err != nil {
+			log.Panic(err)
+		}
+		return float32(val)
+	} else if vtype == Floats {
+		return float32(elem.Value.GetValue().([]float64)[0])
+	} else {
+		log.Panic("Value type not float")
+	}
+	return 0.0
+}
+
+func (d *Dataset) MustGetFloatSlice(tag tag.Tag) []float64 {
+	elem, err := d.FindElementByTag(tag)
+	if err != nil {
+		log.Panic(err)
+	}
+	vtype := elem.Value.ValueType()
+	if vtype == Strings {
+		strs := elem.Value.GetValue().([]string)
+		ints := make([]float64, len(strs))
+		for i := 0; i < len(strs); i++ {
+			ival, err := strconv.ParseFloat(strs[i], 64)
+			if err != nil {
+				log.Panic(err)
+			}
+			ints[i] = float64(ival)
+		}
+		return ints
+	} else if vtype == Floats {
+		return elem.Value.GetValue().([]float64)
+	} else {
+		log.Panic("Value type not floats")
+	}
+	return nil
+}
+
+func (d *Dataset) MustGetSequence(tag tag.Tag) []*SequenceItemValue {
+	elem, err := d.FindElementByTag(tag)
+	if err != nil {
+		log.Panic(err)
+	}
+	vtype := elem.Value.ValueType()
+	if vtype == Sequences {
+		return elem.Value.GetValue().([]*SequenceItemValue)
+	} else {
+		log.Panic("Value type not sequence")
+	}
+	return nil
+}
+
+func (d *Dataset) MustGetString(tag tag.Tag) string {
+	elem, err := d.FindElementByTag(tag)
+	if err != nil {
+		log.Panic(err)
+	}
+	vtype := elem.Value.ValueType()
+	if vtype == Strings {
+		return elem.Value.GetValue().([]string)[0]
+	} else {
+		log.Panic("Value type not string")
+	}
+	return ""
+}
+
 // create a new element or update an existing element with same tag
 func (d *Dataset) Set(atag tag.Tag, elem *Element) {
 	if d.Elements == nil {
