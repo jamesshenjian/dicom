@@ -4,6 +4,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"log"
+	"strconv"
 	"strings"
 
 	"github.com/jamesshenjian/dicom/pkg/tag"
@@ -46,6 +48,26 @@ func (d *Dataset) Get(tag tag.Tag) (interface{}, error) {
 		return nil, err
 	}
 	return elem.Value.GetValue(), nil
+}
+
+func (d *Dataset) MustGetInt(tag tag.Tag) int {
+	elem, err := d.FindElementByTag(tag)
+	if err != nil {
+		log.Panic(err)
+	}
+	vtype := elem.Value.ValueType()
+	if vtype == Strings {
+		val, err := strconv.ParseInt(elem.Value.GetValue().([]string)[0], 10, 32)
+		if err != nil {
+			log.Panic(err)
+		}
+		return int(val)
+	} else if vtype == Ints {
+		return elem.Value.GetValue().([]int)[0]
+	} else {
+		log.Panic("Value type not int")
+	}
+	return 0
 }
 
 // create a new element or update an existing element with same tag
