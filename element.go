@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/suyashkumar/dicom/pkg/frame"
-	"github.com/suyashkumar/dicom/pkg/tag"
+	"github.com/jamesshenjian/dicom/pkg/frame"
+	"github.com/jamesshenjian/dicom/pkg/tag"
 )
 
 // ErrorUnexpectedDataType indicates that an unexpected (not allowed) data type was sent to NewValue.
@@ -98,8 +98,8 @@ func NewValue(data interface{}) (Value, error) {
 		return &pixelDataValue{PixelDataInfo: data.(PixelDataInfo)}, nil
 	case []float64:
 		return &floatsValue{value: data.([]float64)}, nil
-	case [][]*Element:
-		items := data.([][]*Element)
+	case []map[tag.Tag]*Element:
+		items := data.([]map[tag.Tag]*Element)
 		sequenceItems := make([]*SequenceItemValue, 0, len(items))
 		for _, item := range items {
 			sequenceItems = append(sequenceItems, &SequenceItemValue{elements: item})
@@ -141,7 +141,7 @@ func NewElement(t tag.Tag, data interface{}) (*Element, error) {
 	}, nil
 }
 
-func mustNewElement(t tag.Tag, data interface{}) *Element {
+func MustNewElement(t tag.Tag, data interface{}) *Element {
 	elem, err := NewElement(t, data)
 	if err != nil {
 		log.Panic(err)
@@ -253,7 +253,7 @@ func (s *floatsValue) MarshalJSON() ([]byte, error) {
 // more about Sequences at
 // https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_7.5.html.
 type SequenceItemValue struct {
-	elements []*Element
+	elements map[tag.Tag]*Element
 }
 
 func (s *SequenceItemValue) isElementValue() {}

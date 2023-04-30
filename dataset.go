@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/suyashkumar/dicom/pkg/tag"
-	"github.com/suyashkumar/dicom/pkg/uid"
+	"github.com/jamesshenjian/dicom/pkg/tag"
+	"github.com/jamesshenjian/dicom/pkg/uid"
 )
 
 // ErrorElementNotFound indicates that the requested element was not found in
@@ -22,16 +22,14 @@ var ErrorElementNotFound = errors.New("element not found")
 // This Dataset includes several helper methods to find Elements within this dataset or iterate over every Element
 // within this Dataset (including Elements nested within Sequences).
 type Dataset struct {
-	Elements []*Element `json:"elements"`
+	Elements map[tag.Tag]*Element `json:"elements"`
 }
 
 // FindElementByTag searches through the dataset and returns a pointer to the matching element.
 // It DOES NOT search within Sequences as well.
 func (d *Dataset) FindElementByTag(tag tag.Tag) (*Element, error) {
-	for _, e := range d.Elements {
-		if e.Tag == tag {
-			return e, nil
-		}
+	if ele, ok := d.Elements[tag]; ok {
+		return ele, nil
 	}
 	return nil, ErrorElementNotFound
 }
@@ -104,7 +102,7 @@ func ExhaustElementChannel(c <-chan *Element) {
 	}
 }
 
-func flatElementsIterator(elems []*Element, elemChan chan<- *Element) {
+func flatElementsIterator(elems map[tag.Tag]*Element, elemChan chan<- *Element) {
 	for _, elem := range elems {
 		if elem.Value.ValueType() == Sequences {
 			elemChan <- elem
@@ -151,7 +149,7 @@ func (d *Dataset) FlatStatefulIterator() *FlatDatasetIterator {
 	return &FlatDatasetIterator{flattenedDataset: flatSliceBuilder(d.Elements)}
 }
 
-func flatSliceBuilder(datasetElems []*Element) []*Element {
+func flatSliceBuilder(datasetElems map[tag.Tag]*Element) []*Element {
 	var current []*Element
 	for _, elem := range datasetElems {
 		if elem.Value.ValueType() == Sequences {
@@ -205,7 +203,7 @@ func (d *Dataset) flatIteratorWithLevel() <-chan *elementWithLevel {
 	return elemChan
 }
 
-func flatElementsIteratorWithLevel(elems []*Element, level uint, eWithLevelChan chan<- *elementWithLevel) {
+func flatElementsIteratorWithLevel(elems map[tag.Tag]*Element, level uint, eWithLevelChan chan<- *elementWithLevel) {
 	for _, elem := range elems {
 		if elem.Value.ValueType() == Sequences {
 			eWithLevelChan <- &elementWithLevel{elem, level}

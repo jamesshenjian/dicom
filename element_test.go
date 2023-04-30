@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/suyashkumar/dicom/pkg/tag"
+	"github.com/jamesshenjian/dicom/pkg/tag"
 )
 
 func TestElement_MarshalJSON_NestedElements(t *testing.T) {
@@ -98,9 +98,9 @@ func TestNewValue(t *testing.T) {
 		},
 		{
 			name: "sequence",
-			data: [][]*Element{
+			data: []map[tag.Tag]*Element{
 				{
-					{
+					tag.PatientName: {
 						Tag:                 tag.PatientName,
 						ValueRepresentation: tag.VRString,
 						Value: &stringsValue{
@@ -111,8 +111,8 @@ func TestNewValue(t *testing.T) {
 			},
 			wantValue: &sequencesValue{value: []*SequenceItemValue{
 				{
-					elements: []*Element{
-						{
+					elements: map[tag.Tag]*Element{
+						tag.PatientName: {
 							Tag:                 tag.PatientName,
 							ValueRepresentation: tag.VRString,
 							Value: &stringsValue{

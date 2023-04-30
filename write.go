@@ -8,12 +8,12 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/suyashkumar/dicom/pkg/vrraw"
+	"github.com/jamesshenjian/dicom/pkg/vrraw"
 
-	"github.com/suyashkumar/dicom/pkg/uid"
+	"github.com/jamesshenjian/dicom/pkg/uid"
 
-	"github.com/suyashkumar/dicom/pkg/dicomio"
-	"github.com/suyashkumar/dicom/pkg/tag"
+	"github.com/jamesshenjian/dicom/pkg/dicomio"
+	"github.com/jamesshenjian/dicom/pkg/tag"
 )
 
 var (
@@ -170,7 +170,7 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts w
 	}
 	if err == ErrorElementNotFound && opts.defaultMissingTransferSyntax {
 		// Write the default transfer syntax
-		if err = writeElement(subWriter, mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}), opts); err != nil {
+		if err = writeElement(subWriter, MustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}), opts); err != nil {
 			return err
 		}
 	}
@@ -446,7 +446,7 @@ func writeValue(w dicomio.Writer, t tag.Tag, value Value, valueType ValueType, v
 	case PixelData:
 		return writePixelData(w, t, value, vr, vl)
 	case SequenceItem:
-		return writeSequenceItem(w, t, v.([]*Element), vr, vl, opts)
+		return writeSequenceItem(w, t, v.(map[tag.Tag]*Element), vr, vl, opts)
 	case Sequences:
 		return writeSequence(w, t, v.([]*SequenceItemValue), vr, vl, opts)
 	case Floats:
@@ -504,7 +504,7 @@ func writeBytes(w dicomio.Writer, values []byte, vr string) error {
 func writeInts(w dicomio.Writer, values []int, vr string) error {
 	for _, value := range values {
 		switch vr {
-		// TODO(suyashkumar): consider additional validation of VR=AT elements.
+		// TODO(jamesshenjian): consider additional validation of VR=AT elements.
 		case vrraw.UnsignedShort, vrraw.SignedShort, vrraw.AttributeTag:
 			if err := w.WriteUInt16(uint16(value)); err != nil {
 				return err
@@ -650,7 +650,7 @@ var item = &Element{
 	ValueLength: tag.VLUndefinedLength,
 }
 
-func writeSequenceItem(w dicomio.Writer, t tag.Tag, values []*Element, vr string, vl uint32, opts writeOptSet) error {
+func writeSequenceItem(w dicomio.Writer, t tag.Tag, values map[tag.Tag]*Element, vr string, vl uint32, opts writeOptSet) error {
 	// Write out item header.
 	if err := writeElement(w, item, opts); err != nil {
 		return err

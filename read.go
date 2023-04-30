@@ -11,12 +11,12 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/suyashkumar/dicom/pkg/debug"
-	"github.com/suyashkumar/dicom/pkg/vrraw"
+	"github.com/jamesshenjian/dicom/pkg/debug"
+	"github.com/jamesshenjian/dicom/pkg/vrraw"
 
-	"github.com/suyashkumar/dicom/pkg/dicomio"
-	"github.com/suyashkumar/dicom/pkg/frame"
-	"github.com/suyashkumar/dicom/pkg/tag"
+	"github.com/jamesshenjian/dicom/pkg/dicomio"
+	"github.com/jamesshenjian/dicom/pkg/frame"
+	"github.com/jamesshenjian/dicom/pkg/tag"
 )
 
 var (
@@ -35,7 +35,7 @@ var (
 
 // reader is responsible for mid-level dicom parsing capabilities, like
 // reading tags, VRs, and elements from the low-level dicomio.Reader dicom data.
-// TODO(suyashkumar): consider revisiting naming of this struct "reader" as it
+// TODO(jamesshenjian): consider revisiting naming of this struct "reader" as it
 // interplays with the rawReader dicomio.Reader. We could consider combining
 // them, or embedding the dicomio.Reader struct into reader.
 type reader struct {
@@ -134,7 +134,7 @@ func (r *reader) readValue(t tag.Tag, vr string, vl uint32, isImplicit bool, d *
 
 // readHeader reads the DICOM magic header and group two metadata elements.
 // This should only be called once per DICOM at the start of parsing.
-func (r *reader) readHeader() ([]*Element, error) {
+func (r *reader) readHeader() (map[tag.Tag]*Element, error) {
 	// Check to see if magic word is at byte offset 128. If not, this is a
 	// non-standard non-compliant DICOM. We try to read this DICOM in a
 	// compatibility mode, where we rewind to position 0 and blindly attempt to
@@ -165,7 +165,7 @@ func (r *reader) readHeader() ([]*Element, error) {
 
 	metaLen := maybeMetaLen.Value.GetValue().([]int)[0]
 
-	metaElems := []*Element{maybeMetaLen} // TODO: maybe set capacity to a reasonable initial size
+	metaElems := make(map[tag.Tag]*Element, metaLen) // TODO: maybe set capacity to a reasonable initial size
 
 	// Read the metadata elements
 	err = r.rawReader.PushLimit(int64(metaLen))
@@ -180,7 +180,7 @@ func (r *reader) readHeader() ([]*Element, error) {
 			return nil, err
 		}
 		// log.Printf("Metadata Element: %s\n", elem)
-		metaElems = append(metaElems, elem)
+		metaElems[elem.Tag] = elem
 	}
 	return metaElems, nil
 }
@@ -512,10 +512,12 @@ func (r *reader) readSequence(t tag.Tag, vr string, vl uint32, d *Dataset) (Valu
 // with a SequenceItem value.
 func (r *reader) readSequenceItem(t tag.Tag, vr string, vl uint32, d *Dataset) (Value, error) {
 	var sequenceItem SequenceItemValue
+	sequenceItem.elements = make(map[tag.Tag]*Element)
 
 	// seqElements holds items read so farawReader.
 	// TODO: deduplicate with sequenceItem above
 	seqElements := Dataset{}
+	seqElements.Elements = make(map[tag.Tag]*Element)
 
 	if vl == tag.VLUndefinedLength {
 		for {
@@ -527,8 +529,8 @@ func (r *reader) readSequenceItem(t tag.Tag, vr string, vl uint32, d *Dataset) (
 				break
 			}
 
-			sequenceItem.elements = append(sequenceItem.elements, subElem)
-			seqElements.Elements = append(seqElements.Elements, subElem)
+			sequenceItem.elements[subElem.Tag] = subElem
+			seqElements.Elements[subElem.Tag] = subElem
 		}
 	} else {
 		err := r.rawReader.PushLimit(int64(vl))
@@ -542,8 +544,8 @@ func (r *reader) readSequenceItem(t tag.Tag, vr string, vl uint32, d *Dataset) (
 				return nil, err
 			}
 
-			sequenceItem.elements = append(sequenceItem.elements, subElem)
-			seqElements.Elements = append(seqElements.Elements, subElem)
+			sequenceItem.elements[subElem.Tag] = subElem
+			seqElements.Elements[subElem.Tag] = subElem
 		}
 		r.rawReader.PopLimit()
 	}
@@ -613,7 +615,7 @@ func (r *reader) readFloat(t tag.Tag, vr string, vl uint32) (Value, error) {
 			if err != nil {
 				return nil, err
 			}
-			// TODO(suyashkumar): revisit this hack to prevent some internal representation issues upconverting from
+			// TODO(jamesshenjian): revisit this hack to prevent some internal representation issues upconverting from
 			// float32 to float64. There is no loss of precision, but the value gets some additional significant digits
 			// when using golang casting. This approach prevents those artifacts, but is less efficient.
 			pval, err := strconv.ParseFloat(fmt.Sprint(val), 64)

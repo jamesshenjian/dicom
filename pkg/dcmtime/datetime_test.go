@@ -2,9 +2,10 @@ package dcmtime_test
 
 import (
 	"errors"
-	"github.com/suyashkumar/dicom/pkg/dcmtime"
 	"testing"
 	"time"
+
+	"github.com/jamesshenjian/dicom/pkg/dcmtime"
 )
 
 func TestParseDatetime(t *testing.T) {

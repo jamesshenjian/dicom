@@ -27,12 +27,12 @@ import (
 	"io"
 	"os"
 
-	"github.com/suyashkumar/dicom/pkg/charset"
-	"github.com/suyashkumar/dicom/pkg/debug"
-	"github.com/suyashkumar/dicom/pkg/dicomio"
-	"github.com/suyashkumar/dicom/pkg/frame"
-	"github.com/suyashkumar/dicom/pkg/tag"
-	"github.com/suyashkumar/dicom/pkg/uid"
+	"github.com/jamesshenjian/dicom/pkg/charset"
+	"github.com/jamesshenjian/dicom/pkg/debug"
+	"github.com/jamesshenjian/dicom/pkg/dicomio"
+	"github.com/jamesshenjian/dicom/pkg/frame"
+	"github.com/jamesshenjian/dicom/pkg/tag"
+	"github.com/jamesshenjian/dicom/pkg/uid"
 )
 
 const (
@@ -121,7 +121,7 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 		frameChannel: frameChannel,
 	}
 
-	elems := []*Element{}
+	elems := make(map[tag.Tag]*Element)
 	var err error
 	if !optSet.skipMetadataReadOnNewParserInit {
 		debug.Log("NewParser: readHeader")
@@ -134,7 +134,7 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 
 	p.dataset = Dataset{Elements: elems}
 
-	// TODO(suyashkumar): avoid storing the metadata pointers twice (though not that expensive)
+	// TODO(jamesshenjian): avoid storing the metadata pointers twice (though not that expensive)
 	p.metadata = Dataset{Elements: elems}
 
 	// Determine and set the transfer syntax based on the metadata elements parsed so far.
@@ -148,7 +148,7 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 	} else {
 		bo, implicit, err = uid.ParseTransferSyntaxUID(MustGetStrings(ts.Value)[0])
 		if err != nil {
-			// TODO(suyashkumar): should we attempt to parse with LittleEndian
+			// TODO(jamesshenjian): should we attempt to parse with LittleEndian
 			// Implicit here?
 			debug.Log("WARN: could not parse transfer syntax uid in metadata")
 		}
@@ -186,7 +186,7 @@ func (p *Parser) Next() (*Element, error) {
 		p.reader.rawReader.SetCodingSystem(cs)
 	}
 
-	p.dataset.Elements = append(p.dataset.Elements, elem)
+	p.dataset.Elements[elem.Tag] = elem
 	return elem, nil
 
 }

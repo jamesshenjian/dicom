@@ -3,21 +3,22 @@ package dicom
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
 
-	"github.com/suyashkumar/dicom/pkg/vrraw"
+	"github.com/jamesshenjian/dicom/pkg/vrraw"
 
-	"github.com/suyashkumar/dicom/pkg/frame"
+	"github.com/jamesshenjian/dicom/pkg/frame"
 
 	"github.com/google/go-cmp/cmp/cmpopts"
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/suyashkumar/dicom/pkg/dicomio"
-	"github.com/suyashkumar/dicom/pkg/tag"
-	"github.com/suyashkumar/dicom/pkg/uid"
+	"github.com/jamesshenjian/dicom/pkg/dicomio"
+	"github.com/jamesshenjian/dicom/pkg/tag"
+	"github.com/jamesshenjian/dicom/pkg/uid"
 )
 
 // TestWrite tests the write package by ensuring that it is consistent with the
@@ -28,10 +29,15 @@ import (
 // This also serves to test that the Parse implementation is consistent with the
 // Write implementation (e.g. it kinda goes both ways and covers Parse too).
 func TestWrite(t *testing.T) {
+
+	dset, _ := ParseFile("./testdata/CT.9795_7.dcm", nil)
+
+	fmt.Print(dset) //.Elements[tag.SOPClassUID].Value.GetValue().([]string)[0])
+
 	cases := []struct {
 		name          string
 		dataset       Dataset
-		extraElems    []*Element
+		extraElems    map[tag.Tag]*Element
 		expectedError error
 		opts          []WriteOption
 		parseOpts     []ParseOption
@@ -39,19 +45,19 @@ func TestWrite(t *testing.T) {
 	}{
 		{
 			name: "basic types",
-			dataset: Dataset{Elements: []*Element{
-				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
-				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
-				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
-				mustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
-				mustNewElement(tag.Rows, []int{128}),
-				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
-				mustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
-				mustNewElement(tag.RedPaletteColorLookupTableData, []byte{0x1, 0x2, 0x3, 0x4}),
-				mustNewElement(tag.SelectorSLValue, []int{-20}),
+			dataset: Dataset{Elements: map[tag.Tag]*Element{
+				tag.MediaStorageSOPClassUID:        MustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				tag.MediaStorageSOPInstanceUID:     MustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				tag.TransferSyntaxUID:              MustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				tag.PatientName:                    MustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
+				tag.Rows:                           MustNewElement(tag.Rows, []int{128}),
+				tag.FloatingPointValue:             MustNewElement(tag.FloatingPointValue, []float64{128.10}),
+				tag.DimensionIndexPointer:          MustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
+				tag.RedPaletteColorLookupTableData: MustNewElement(tag.RedPaletteColorLookupTableData, []byte{0x1, 0x2, 0x3, 0x4}),
+				tag.SelectorSLValue:                MustNewElement(tag.SelectorSLValue, []int{-20}),
 				// Some tag with an unknown VR.
-				{
-					Tag:                    tag.Tag{0x0019, 0x1027},
+				tag.Tag{Group: 0x0019, Element: 0x1027}: {
+					Tag:                    tag.Tag{Group: 0x0019, Element: 0x1027},
 					ValueRepresentation:    tag.VRBytes,
 					RawValueRepresentation: "UN",
 					ValueLength:            4,
@@ -64,24 +70,24 @@ func TestWrite(t *testing.T) {
 		},
 		{
 			name: "private tag",
-			dataset: Dataset{Elements: []*Element{
-				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
-				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+			dataset: Dataset{Elements: map[tag.Tag]*Element{
+				tag.MediaStorageSOPClassUID:    MustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				tag.MediaStorageSOPInstanceUID: MustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
 				// We need to use an Explicit transfer syntax here or all data will be
 				// read in with "UN".
-				mustNewElement(tag.TransferSyntaxUID, []string{uid.ExplicitVRLittleEndian}),
-				mustNewPrivateElement(tag.Tag{0x0003, 0x0010}, vrraw.ShortText, []string{"some data"}),
+				tag.TransferSyntaxUID:   MustNewElement(tag.TransferSyntaxUID, []string{uid.ExplicitVRLittleEndian}),
+				tag.Tag{0x0003, 0x0010}: mustNewPrivateElement(tag.Tag{0x0003, 0x0010}, vrraw.ShortText, []string{"some data"}),
 			}},
 			expectedError: nil,
 		},
 		{
 			name: "sequence (2 Items with 2 values each)",
-			dataset: Dataset{Elements: []*Element{
-				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
-				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
-				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
-				mustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
-				makeSequenceElement(tag.AddOtherSequence, [][]*Element{
+			dataset: Dataset{Elements: map[tag.Tag]*Element{
+				tag.MediaStorageSOPClassUID:    MustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				tag.MediaStorageSOPInstanceUID: MustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				tag.TransferSyntaxUID:          MustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				tag.PatientName:                MustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
+				tag.AddOtherSequence: makeSequenceElement(tag.AddOtherSequence, [][]*Element{
 					// Item 1.
 					{
 						{
@@ -126,12 +132,12 @@ func TestWrite(t *testing.T) {
 		},
 		{
 			name: "sequence (2 Items with 2 values each) - skip vr verification",
-			dataset: Dataset{Elements: []*Element{
-				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
-				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
-				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
-				mustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
-				makeSequenceElement(tag.AddOtherSequence, [][]*Element{
+			dataset: Dataset{Elements: map[tag.Tag]*Element{
+				tag.MediaStorageSOPClassUID:    MustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				tag.MediaStorageSOPInstanceUID: MustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				tag.TransferSyntaxUID:          MustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				tag.PatientName:                MustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
+				tag.AddOtherSequence: makeSequenceElement(tag.AddOtherSequence, [][]*Element{
 					// Item 1.
 					{
 						{
@@ -177,12 +183,12 @@ func TestWrite(t *testing.T) {
 		},
 		{
 			name: "nested sequences",
-			dataset: Dataset{Elements: []*Element{
-				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
-				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
-				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
-				mustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
-				makeSequenceElement(tag.AddOtherSequence, [][]*Element{
+			dataset: Dataset{Elements: map[tag.Tag]*Element{
+				tag.MediaStorageSOPClassUID:    MustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				tag.MediaStorageSOPInstanceUID: MustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				tag.TransferSyntaxUID:          MustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				tag.PatientName:                MustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
+				tag.AddOtherSequence: makeSequenceElement(tag.AddOtherSequence, [][]*Element{
 					// Item 1.
 					{
 						{
@@ -213,12 +219,12 @@ func TestWrite(t *testing.T) {
 		},
 		{
 			name: "nested sequences - without VR verification",
-			dataset: Dataset{Elements: []*Element{
-				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
-				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
-				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
-				mustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
-				makeSequenceElement(tag.AddOtherSequence, [][]*Element{
+			dataset: Dataset{Elements: map[tag.Tag]*Element{
+				tag.MediaStorageSOPClassUID:    MustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				tag.MediaStorageSOPInstanceUID: MustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				tag.TransferSyntaxUID:          MustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				tag.PatientName:                MustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
+				tag.AddOtherSequence: makeSequenceElement(tag.AddOtherSequence, [][]*Element{
 					// Item 1.
 					{
 						{
@@ -250,41 +256,41 @@ func TestWrite(t *testing.T) {
 		},
 		{
 			name: "without transfer syntax",
-			dataset: Dataset{Elements: []*Element{
-				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
-				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
-				mustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
-				mustNewElement(tag.Rows, []int{128}),
-				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
+			dataset: Dataset{Elements: map[tag.Tag]*Element{
+				tag.MediaStorageSOPClassUID:    MustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				tag.MediaStorageSOPInstanceUID: MustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				tag.PatientName:                MustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
+				tag.Rows:                       MustNewElement(tag.Rows, []int{128}),
+				tag.FloatingPointValue:         MustNewElement(tag.FloatingPointValue, []float64{128.10}),
 			}},
 			expectedError: ErrorElementNotFound,
 		},
 		{
 			name: "without transfer syntax with DefaultMissingTransferSyntax",
-			dataset: Dataset{Elements: []*Element{
-				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
-				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
-				mustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
-				mustNewElement(tag.Rows, []int{128}),
-				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
+			dataset: Dataset{Elements: map[tag.Tag]*Element{
+				tag.MediaStorageSOPClassUID:    MustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				tag.MediaStorageSOPInstanceUID: MustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				tag.PatientName:                MustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
+				tag.Rows:                       MustNewElement(tag.Rows, []int{128}),
+				tag.FloatingPointValue:         MustNewElement(tag.FloatingPointValue, []float64{128.10}),
 			}},
 			// This gets inserted if DefaultMissingTransferSyntax is provided:
-			extraElems:    []*Element{mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian})},
+			extraElems:    map[tag.Tag]*Element{tag.TransferSyntaxUID: MustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian})},
 			expectedError: nil,
 			opts:          []WriteOption{DefaultMissingTransferSyntax()},
 		},
 		{
 			name: "native PixelData: 8bit",
-			dataset: Dataset{Elements: []*Element{
-				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
-				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
-				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
-				mustNewElement(tag.Rows, []int{2}),
-				mustNewElement(tag.Columns, []int{2}),
-				mustNewElement(tag.BitsAllocated, []int{8}),
-				mustNewElement(tag.NumberOfFrames, []string{"1"}),
-				mustNewElement(tag.SamplesPerPixel, []int{1}),
-				mustNewElement(tag.PixelData, PixelDataInfo{
+			dataset: Dataset{Elements: map[tag.Tag]*Element{
+				tag.MediaStorageSOPClassUID:    MustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				tag.MediaStorageSOPInstanceUID: MustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				tag.TransferSyntaxUID:          MustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				tag.Rows:                       MustNewElement(tag.Rows, []int{2}),
+				tag.Columns:                    MustNewElement(tag.Columns, []int{2}),
+				tag.BitsAllocated:              MustNewElement(tag.BitsAllocated, []int{8}),
+				tag.NumberOfFrames:             MustNewElement(tag.NumberOfFrames, []string{"1"}),
+				tag.SamplesPerPixel:            MustNewElement(tag.SamplesPerPixel, []int{1}),
+				tag.PixelData: MustNewElement(tag.PixelData, PixelDataInfo{
 					IsEncapsulated: false,
 					Frames: []frame.Frame{
 						{
@@ -298,23 +304,23 @@ func TestWrite(t *testing.T) {
 						},
 					},
 				}),
-				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
-				mustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
+				tag.FloatingPointValue:    MustNewElement(tag.FloatingPointValue, []float64{128.10}),
+				tag.DimensionIndexPointer: MustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
 			}},
 			expectedError: nil,
 		},
 		{
 			name: "native PixelData: 16bit",
-			dataset: Dataset{Elements: []*Element{
-				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
-				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
-				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
-				mustNewElement(tag.Rows, []int{2}),
-				mustNewElement(tag.Columns, []int{2}),
-				mustNewElement(tag.BitsAllocated, []int{16}),
-				mustNewElement(tag.NumberOfFrames, []string{"1"}),
-				mustNewElement(tag.SamplesPerPixel, []int{1}),
-				mustNewElement(tag.PixelData, PixelDataInfo{
+			dataset: Dataset{Elements: map[tag.Tag]*Element{
+				tag.MediaStorageSOPClassUID:    MustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				tag.MediaStorageSOPInstanceUID: MustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				tag.TransferSyntaxUID:          MustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				tag.Rows:                       MustNewElement(tag.Rows, []int{2}),
+				tag.Columns:                    MustNewElement(tag.Columns, []int{2}),
+				tag.BitsAllocated:              MustNewElement(tag.BitsAllocated, []int{16}),
+				tag.NumberOfFrames:             MustNewElement(tag.NumberOfFrames, []string{"1"}),
+				tag.SamplesPerPixel:            MustNewElement(tag.SamplesPerPixel, []int{1}),
+				tag.PixelData: MustNewElement(tag.PixelData, PixelDataInfo{
 					IsEncapsulated: false,
 					Frames: []frame.Frame{
 						{
@@ -333,16 +339,16 @@ func TestWrite(t *testing.T) {
 		},
 		{
 			name: "native PixelData: 32bit",
-			dataset: Dataset{Elements: []*Element{
-				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
-				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
-				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
-				mustNewElement(tag.Rows, []int{2}),
-				mustNewElement(tag.Columns, []int{2}),
-				mustNewElement(tag.BitsAllocated, []int{32}),
-				mustNewElement(tag.NumberOfFrames, []string{"1"}),
-				mustNewElement(tag.SamplesPerPixel, []int{1}),
-				mustNewElement(tag.PixelData, PixelDataInfo{
+			dataset: Dataset{Elements: map[tag.Tag]*Element{
+				tag.MediaStorageSOPClassUID:    MustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				tag.MediaStorageSOPInstanceUID: MustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				tag.TransferSyntaxUID:          MustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				tag.Rows:                       MustNewElement(tag.Rows, []int{2}),
+				tag.Columns:                    MustNewElement(tag.Columns, []int{2}),
+				tag.BitsAllocated:              MustNewElement(tag.BitsAllocated, []int{32}),
+				tag.NumberOfFrames:             MustNewElement(tag.NumberOfFrames, []string{"1"}),
+				tag.SamplesPerPixel:            MustNewElement(tag.SamplesPerPixel, []int{1}),
+				tag.PixelData: MustNewElement(tag.PixelData, PixelDataInfo{
 					IsEncapsulated: false,
 					Frames: []frame.Frame{
 						{
@@ -361,16 +367,16 @@ func TestWrite(t *testing.T) {
 		},
 		{
 			name: "native PixelData: 2 SamplesPerPixel, 2 frames",
-			dataset: Dataset{Elements: []*Element{
-				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
-				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
-				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
-				mustNewElement(tag.Rows, []int{2}),
-				mustNewElement(tag.Columns, []int{2}),
-				mustNewElement(tag.BitsAllocated, []int{32}),
-				mustNewElement(tag.NumberOfFrames, []string{"2"}),
-				mustNewElement(tag.SamplesPerPixel, []int{2}),
-				mustNewElement(tag.PixelData, PixelDataInfo{
+			dataset: Dataset{Elements: map[tag.Tag]*Element{
+				tag.MediaStorageSOPClassUID:    MustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				tag.MediaStorageSOPInstanceUID: MustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				tag.TransferSyntaxUID:          MustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				tag.Rows:                       MustNewElement(tag.Rows, []int{2}),
+				tag.Columns:                    MustNewElement(tag.Columns, []int{2}),
+				tag.BitsAllocated:              MustNewElement(tag.BitsAllocated, []int{32}),
+				tag.NumberOfFrames:             MustNewElement(tag.NumberOfFrames, []string{"2"}),
+				tag.SamplesPerPixel:            MustNewElement(tag.SamplesPerPixel, []int{2}),
+				tag.PixelData: MustNewElement(tag.PixelData, PixelDataInfo{
 					IsEncapsulated: false,
 					Frames: []frame.Frame{
 						{
@@ -398,12 +404,12 @@ func TestWrite(t *testing.T) {
 		},
 		{
 			name: "encapsulated PixelData",
-			dataset: Dataset{Elements: []*Element{
-				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
-				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
-				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
-				mustNewElement(tag.BitsAllocated, []int{8}),
-				setUndefinedLength(mustNewElement(tag.PixelData, PixelDataInfo{
+			dataset: Dataset{Elements: map[tag.Tag]*Element{
+				tag.MediaStorageSOPClassUID:    MustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				tag.MediaStorageSOPInstanceUID: MustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				tag.TransferSyntaxUID:          MustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				tag.BitsAllocated:              MustNewElement(tag.BitsAllocated, []int{8}),
+				tag.PixelData: setUndefinedLength(MustNewElement(tag.PixelData, PixelDataInfo{
 					IsEncapsulated: true,
 					Frames: []frame.Frame{
 						{
@@ -412,19 +418,19 @@ func TestWrite(t *testing.T) {
 						},
 					},
 				})),
-				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
-				mustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
+				tag.FloatingPointValue:    MustNewElement(tag.FloatingPointValue, []float64{128.10}),
+				tag.DimensionIndexPointer: MustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
 			}},
 			expectedError: nil,
 		},
 		{
 			name: "encapsulated PixelData: multiframe",
-			dataset: Dataset{Elements: []*Element{
-				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
-				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
-				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
-				mustNewElement(tag.BitsAllocated, []int{8}),
-				setUndefinedLength(mustNewElement(tag.PixelData, PixelDataInfo{
+			dataset: Dataset{Elements: map[tag.Tag]*Element{
+				tag.MediaStorageSOPClassUID:    MustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				tag.MediaStorageSOPInstanceUID: MustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				tag.TransferSyntaxUID:          MustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				tag.BitsAllocated:              MustNewElement(tag.BitsAllocated, []int{8}),
+				tag.PixelData: setUndefinedLength(MustNewElement(tag.PixelData, PixelDataInfo{
 					IsEncapsulated: true,
 					Frames: []frame.Frame{
 						{
@@ -437,21 +443,21 @@ func TestWrite(t *testing.T) {
 						},
 					},
 				})),
-				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
-				mustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
+				tag.FloatingPointValue:    MustNewElement(tag.FloatingPointValue, []float64{128.10}),
+				tag.DimensionIndexPointer: MustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
 			}},
 			expectedError: nil,
 		},
 		{
 			name: "PixelData with IntentionallyUnprocessed=true",
-			dataset: Dataset{Elements: []*Element{
-				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
-				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
-				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
-				mustNewElement(tag.BitsAllocated, []int{8}),
-				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
-				mustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
-				mustNewElement(tag.PixelData, PixelDataInfo{
+			dataset: Dataset{Elements: map[tag.Tag]*Element{
+				tag.MediaStorageSOPClassUID:    MustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				tag.MediaStorageSOPInstanceUID: MustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				tag.TransferSyntaxUID:          MustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				tag.BitsAllocated:              MustNewElement(tag.BitsAllocated, []int{8}),
+				tag.FloatingPointValue:         MustNewElement(tag.FloatingPointValue, []float64{128.10}),
+				tag.DimensionIndexPointer:      MustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
+				tag.PixelData: MustNewElement(tag.PixelData, PixelDataInfo{
 					IntentionallyUnprocessed: true,
 					UnprocessedValueData:     []byte{1, 2, 3, 4},
 					IsEncapsulated:           false,
@@ -462,13 +468,13 @@ func TestWrite(t *testing.T) {
 		},
 		{
 			name: "Native PixelData with IntentionallySkipped=true",
-			dataset: Dataset{Elements: []*Element{
-				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
-				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
-				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
-				mustNewElement(tag.BitsAllocated, []int{8}),
-				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
-				mustNewElement(tag.PixelData, PixelDataInfo{
+			dataset: Dataset{Elements: map[tag.Tag]*Element{
+				tag.MediaStorageSOPClassUID:    MustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				tag.MediaStorageSOPInstanceUID: MustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				tag.TransferSyntaxUID:          MustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				tag.BitsAllocated:              MustNewElement(tag.BitsAllocated, []int{8}),
+				tag.FloatingPointValue:         MustNewElement(tag.FloatingPointValue, []float64{128.10}),
+				tag.PixelData: MustNewElement(tag.PixelData, PixelDataInfo{
 					IntentionallySkipped: true,
 					IsEncapsulated:       false,
 				}),
@@ -478,13 +484,13 @@ func TestWrite(t *testing.T) {
 		},
 		{
 			name: "Encapsulated PixelData with IntentionallySkipped=true",
-			dataset: Dataset{Elements: []*Element{
-				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
-				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
-				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
-				mustNewElement(tag.BitsAllocated, []int{8}),
-				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
-				setUndefinedLength(mustNewElement(tag.PixelData, PixelDataInfo{
+			dataset: Dataset{Elements: map[tag.Tag]*Element{
+				tag.MediaStorageSOPClassUID:    MustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				tag.MediaStorageSOPInstanceUID: MustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				tag.TransferSyntaxUID:          MustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				tag.BitsAllocated:              MustNewElement(tag.BitsAllocated, []int{8}),
+				tag.FloatingPointValue:         MustNewElement(tag.FloatingPointValue, []float64{128.10}),
+				tag.PixelData: setUndefinedLength(MustNewElement(tag.PixelData, PixelDataInfo{
 					IntentionallySkipped: true,
 					IsEncapsulated:       true,
 				})),
@@ -520,7 +526,7 @@ func TestWrite(t *testing.T) {
 					t.Errorf("Parse of written file, unexpected error: %v", err)
 				}
 
-				wantElems := append(tc.dataset.Elements, tc.extraElems...)
+				wantElems := AppendMap(tc.dataset.Elements, tc.extraElems)
 
 				cmpOpts := []cmp.Option{
 					cmp.AllowUnexported(allValues...),
@@ -540,6 +546,19 @@ func TestWrite(t *testing.T) {
 			}
 		})
 	}
+}
+
+func AppendMap(m1 map[tag.Tag]*Element, m2 map[tag.Tag]*Element) map[tag.Tag]*Element {
+	res := make(map[tag.Tag]*Element)
+
+	for key := range m1 {
+		res[key] = m1[key]
+	}
+	for key := range m2 {
+		res[key] = m2[key]
+	}
+
+	return res
 }
 
 func TestVerifyVR(t *testing.T) {
@@ -733,15 +752,15 @@ func setUndefinedLength(e *Element) *Element {
 
 // TestWriteElement tests a dataset written using writer.WriteElement can be parsed into an identical dataset using NewParser.
 func TestWriteElement(t *testing.T) {
-	writeDS := Dataset{Elements: []*Element{
-		mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
-		mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
-		mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
-		mustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
-		mustNewElement(tag.Rows, []int{128}),
-		mustNewElement(tag.FloatingPointValue, []float64{128.10}),
-		mustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
-		mustNewElement(tag.RedPaletteColorLookupTableData, []byte{0x1, 0x2, 0x3, 0x4}),
+	writeDS := Dataset{Elements: map[tag.Tag]*Element{
+		tag.MediaStorageSOPClassUID:        MustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+		tag.MediaStorageSOPInstanceUID:     MustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+		tag.TransferSyntaxUID:              MustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+		tag.PatientName:                    MustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
+		tag.Rows:                           MustNewElement(tag.Rows, []int{128}),
+		tag.FloatingPointValue:             MustNewElement(tag.FloatingPointValue, []float64{128.10}),
+		tag.DimensionIndexPointer:          MustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
+		tag.RedPaletteColorLookupTableData: MustNewElement(tag.RedPaletteColorLookupTableData, []byte{0x1, 0x2, 0x3, 0x4}),
 	}}
 
 	buf := bytes.Buffer{}

@@ -11,14 +11,14 @@ import (
 
 	"github.com/google/go-cmp/cmp/cmpopts"
 
-	"github.com/suyashkumar/dicom/pkg/vrraw"
+	"github.com/jamesshenjian/dicom/pkg/vrraw"
 
-	"github.com/suyashkumar/dicom/pkg/dicomio"
-	"github.com/suyashkumar/dicom/pkg/frame"
+	"github.com/jamesshenjian/dicom/pkg/dicomio"
+	"github.com/jamesshenjian/dicom/pkg/frame"
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/suyashkumar/dicom/pkg/tag"
+	"github.com/jamesshenjian/dicom/pkg/tag"
 )
 
 func TestReadTag(t *testing.T) {
@@ -219,12 +219,12 @@ func TestReadNativeFrames(t *testing.T) {
 	}{
 		{
 			Name: "5x5, 1 frame, 1 samples/pixel",
-			existingData: Dataset{Elements: []*Element{
-				mustNewElement(tag.Rows, []int{5}),
-				mustNewElement(tag.Columns, []int{5}),
-				mustNewElement(tag.NumberOfFrames, []string{"1"}),
-				mustNewElement(tag.BitsAllocated, []int{16}),
-				mustNewElement(tag.SamplesPerPixel, []int{1}),
+			existingData: Dataset{Elements: map[tag.Tag]*Element{
+				tag.Rows:            MustNewElement(tag.Rows, []int{5}),
+				tag.Columns:         MustNewElement(tag.Columns, []int{5}),
+				tag.NumberOfFrames:  MustNewElement(tag.NumberOfFrames, []string{"1"}),
+				tag.BitsAllocated:   MustNewElement(tag.BitsAllocated, []int{16}),
+				tag.SamplesPerPixel: MustNewElement(tag.SamplesPerPixel, []int{1}),
 			}},
 			data: []uint16{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			expectedPixelData: &PixelDataInfo{
@@ -245,12 +245,12 @@ func TestReadNativeFrames(t *testing.T) {
 		},
 		{
 			Name: "2x2, 3 frames, 1 samples/pixel",
-			existingData: Dataset{Elements: []*Element{
-				mustNewElement(tag.Rows, []int{2}),
-				mustNewElement(tag.Columns, []int{2}),
-				mustNewElement(tag.NumberOfFrames, []string{"3"}),
-				mustNewElement(tag.BitsAllocated, []int{16}),
-				mustNewElement(tag.SamplesPerPixel, []int{1}),
+			existingData: Dataset{Elements: map[tag.Tag]*Element{
+				tag.Rows:            MustNewElement(tag.Rows, []int{2}),
+				tag.Columns:         MustNewElement(tag.Columns, []int{2}),
+				tag.NumberOfFrames:  MustNewElement(tag.NumberOfFrames, []string{"3"}),
+				tag.BitsAllocated:   MustNewElement(tag.BitsAllocated, []int{16}),
+				tag.SamplesPerPixel: MustNewElement(tag.SamplesPerPixel, []int{1}),
 			}},
 			data: []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 0},
 			expectedPixelData: &PixelDataInfo{
@@ -289,12 +289,12 @@ func TestReadNativeFrames(t *testing.T) {
 		},
 		{
 			Name: "2x2, 2 frames, 2 samples/pixel",
-			existingData: Dataset{Elements: []*Element{
-				mustNewElement(tag.Rows, []int{2}),
-				mustNewElement(tag.Columns, []int{2}),
-				mustNewElement(tag.NumberOfFrames, []string{"2"}),
-				mustNewElement(tag.BitsAllocated, []int{16}),
-				mustNewElement(tag.SamplesPerPixel, []int{2}),
+			existingData: Dataset{Elements: map[tag.Tag]*Element{
+				tag.Rows:            MustNewElement(tag.Rows, []int{2}),
+				tag.Columns:         MustNewElement(tag.Columns, []int{2}),
+				tag.NumberOfFrames:  MustNewElement(tag.NumberOfFrames, []string{"2"}),
+				tag.BitsAllocated:   MustNewElement(tag.BitsAllocated, []int{16}),
+				tag.SamplesPerPixel: MustNewElement(tag.SamplesPerPixel, []int{2}),
 			}},
 			data: []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 5},
 			expectedPixelData: &PixelDataInfo{
@@ -324,12 +324,12 @@ func TestReadNativeFrames(t *testing.T) {
 		},
 		{
 			Name: "insufficient bytes, uint32",
-			existingData: Dataset{Elements: []*Element{
-				mustNewElement(tag.Rows, []int{2}),
-				mustNewElement(tag.Columns, []int{2}),
-				mustNewElement(tag.NumberOfFrames, []string{"2"}),
-				mustNewElement(tag.BitsAllocated, []int{32}),
-				mustNewElement(tag.SamplesPerPixel, []int{2}),
+			existingData: Dataset{Elements: map[tag.Tag]*Element{
+				tag.Rows:            MustNewElement(tag.Rows, []int{2}),
+				tag.Columns:         MustNewElement(tag.Columns, []int{2}),
+				tag.NumberOfFrames:  MustNewElement(tag.NumberOfFrames, []string{"2"}),
+				tag.BitsAllocated:   MustNewElement(tag.BitsAllocated, []int{32}),
+				tag.SamplesPerPixel: MustNewElement(tag.SamplesPerPixel, []int{2}),
 			}},
 			data:              []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3},
 			expectedPixelData: nil,
@@ -337,12 +337,12 @@ func TestReadNativeFrames(t *testing.T) {
 		},
 		{
 			Name: "redundant bytes, uint32",
-			existingData: Dataset{Elements: []*Element{
-				mustNewElement(tag.Rows, []int{2}),
-				mustNewElement(tag.Columns, []int{2}),
-				mustNewElement(tag.NumberOfFrames, []string{"1"}),
-				mustNewElement(tag.BitsAllocated, []int{32}),
-				mustNewElement(tag.SamplesPerPixel, []int{2}),
+			existingData: Dataset{Elements: map[tag.Tag]*Element{
+				tag.Rows:            MustNewElement(tag.Rows, []int{2}),
+				tag.Columns:         MustNewElement(tag.Columns, []int{2}),
+				tag.NumberOfFrames:  MustNewElement(tag.NumberOfFrames, []string{"1"}),
+				tag.BitsAllocated:   MustNewElement(tag.BitsAllocated, []int{32}),
+				tag.SamplesPerPixel: MustNewElement(tag.SamplesPerPixel, []int{2}),
 			}},
 			data:              []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 2},
 			expectedPixelData: nil,
@@ -350,12 +350,12 @@ func TestReadNativeFrames(t *testing.T) {
 		},
 		{
 			Name: "redundant bytes, uint32 with allowing mismatch length",
-			existingData: Dataset{Elements: []*Element{
-				mustNewElement(tag.Rows, []int{2}),
-				mustNewElement(tag.Columns, []int{2}),
-				mustNewElement(tag.NumberOfFrames, []string{"1"}),
-				mustNewElement(tag.BitsAllocated, []int{32}),
-				mustNewElement(tag.SamplesPerPixel, []int{2}),
+			existingData: Dataset{Elements: map[tag.Tag]*Element{
+				tag.Rows:            MustNewElement(tag.Rows, []int{2}),
+				tag.Columns:         MustNewElement(tag.Columns, []int{2}),
+				tag.NumberOfFrames:  MustNewElement(tag.NumberOfFrames, []string{"1"}),
+				tag.BitsAllocated:   MustNewElement(tag.BitsAllocated, []int{32}),
+				tag.SamplesPerPixel: MustNewElement(tag.SamplesPerPixel, []int{2}),
 			}},
 			data: []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 2},
 			expectedPixelData: &PixelDataInfo{
@@ -373,11 +373,11 @@ func TestReadNativeFrames(t *testing.T) {
 		},
 		{
 			Name: "missing Columns",
-			existingData: Dataset{Elements: []*Element{
-				mustNewElement(tag.Rows, []int{5}),
-				mustNewElement(tag.NumberOfFrames, []string{"1"}),
-				mustNewElement(tag.BitsAllocated, []int{16}),
-				mustNewElement(tag.SamplesPerPixel, []int{1}),
+			existingData: Dataset{Elements: map[tag.Tag]*Element{
+				tag.Rows:            MustNewElement(tag.Rows, []int{5}),
+				tag.NumberOfFrames:  MustNewElement(tag.NumberOfFrames, []string{"1"}),
+				tag.BitsAllocated:   MustNewElement(tag.BitsAllocated, []int{16}),
+				tag.SamplesPerPixel: MustNewElement(tag.SamplesPerPixel, []int{1}),
 			}},
 			data:              []uint16{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			expectedPixelData: nil,
@@ -385,12 +385,12 @@ func TestReadNativeFrames(t *testing.T) {
 		},
 		{
 			Name: "unsupported BitsAllocated",
-			existingData: Dataset{Elements: []*Element{
-				mustNewElement(tag.Rows, []int{5}),
-				mustNewElement(tag.Columns, []int{2}),
-				mustNewElement(tag.NumberOfFrames, []string{"1"}),
-				mustNewElement(tag.BitsAllocated, []int{24}),
-				mustNewElement(tag.SamplesPerPixel, []int{1}),
+			existingData: Dataset{Elements: map[tag.Tag]*Element{
+				tag.Rows:            MustNewElement(tag.Rows, []int{5}),
+				tag.Columns:         MustNewElement(tag.Columns, []int{2}),
+				tag.NumberOfFrames:  MustNewElement(tag.NumberOfFrames, []string{"1"}),
+				tag.BitsAllocated:   MustNewElement(tag.BitsAllocated, []int{24}),
+				tag.SamplesPerPixel: MustNewElement(tag.SamplesPerPixel, []int{1}),
 			}},
 			data:              []uint16{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			expectedPixelData: nil,
@@ -398,12 +398,12 @@ func TestReadNativeFrames(t *testing.T) {
 		},
 		{
 			Name: "3x3, 3 frames, 1 samples/pixel, data bytes with padded 0",
-			existingData: Dataset{Elements: []*Element{
-				mustNewElement(tag.Rows, []int{3}),
-				mustNewElement(tag.Columns, []int{3}),
-				mustNewElement(tag.NumberOfFrames, []string{"3"}),
-				mustNewElement(tag.BitsAllocated, []int{8}),
-				mustNewElement(tag.SamplesPerPixel, []int{1}),
+			existingData: Dataset{Elements: map[tag.Tag]*Element{
+				tag.Rows:            MustNewElement(tag.Rows, []int{3}),
+				tag.Columns:         MustNewElement(tag.Columns, []int{3}),
+				tag.NumberOfFrames:  MustNewElement(tag.NumberOfFrames, []string{"3"}),
+				tag.BitsAllocated:   MustNewElement(tag.BitsAllocated, []int{8}),
+				tag.SamplesPerPixel: MustNewElement(tag.SamplesPerPixel, []int{1}),
 			}},
 			dataBytes: []byte{11, 12, 13, 21, 22, 23, 31, 32, 33, 11, 12, 13, 21, 22, 23, 31, 32, 33, 11, 12, 13, 21, 22, 23, 31, 32, 33, 0}, // there is a 28th byte to make total value length even, as required by DICOM spec
 			expectedPixelData: &PixelDataInfo{
@@ -443,12 +443,12 @@ func TestReadNativeFrames(t *testing.T) {
 		},
 		{
 			Name: "1x1, 3 frames, 3 samples/pixel, data bytes with padded 0",
-			existingData: Dataset{Elements: []*Element{
-				mustNewElement(tag.Rows, []int{1}),
-				mustNewElement(tag.Columns, []int{1}),
-				mustNewElement(tag.NumberOfFrames, []string{"3"}),
-				mustNewElement(tag.BitsAllocated, []int{8}),
-				mustNewElement(tag.SamplesPerPixel, []int{3}),
+			existingData: Dataset{Elements: map[tag.Tag]*Element{
+				tag.Rows:            MustNewElement(tag.Rows, []int{1}),
+				tag.Columns:         MustNewElement(tag.Columns, []int{1}),
+				tag.NumberOfFrames:  MustNewElement(tag.NumberOfFrames, []string{"3"}),
+				tag.BitsAllocated:   MustNewElement(tag.BitsAllocated, []int{8}),
+				tag.SamplesPerPixel: MustNewElement(tag.SamplesPerPixel, []int{3}),
 			}},
 			dataBytes: []byte{1, 2, 3, 1, 2, 3, 1, 2, 3, 0}, // 10th byte to make total value length even
 			expectedPixelData: &PixelDataInfo{
@@ -487,12 +487,12 @@ func TestReadNativeFrames(t *testing.T) {
 		},
 		{
 			Name: "1x1, 2 frames, 3 samples/pixel, bad pixel length",
-			existingData: Dataset{Elements: []*Element{
-				mustNewElement(tag.Rows, []int{1}),
-				mustNewElement(tag.Columns, []int{1}),
-				mustNewElement(tag.NumberOfFrames, []string{"2"}),
-				mustNewElement(tag.BitsAllocated, []int{8}),
-				mustNewElement(tag.SamplesPerPixel, []int{3}),
+			existingData: Dataset{Elements: map[tag.Tag]*Element{
+				tag.Rows:            MustNewElement(tag.Rows, []int{1}),
+				tag.Columns:         MustNewElement(tag.Columns, []int{1}),
+				tag.NumberOfFrames:  MustNewElement(tag.NumberOfFrames, []string{"2"}),
+				tag.BitsAllocated:   MustNewElement(tag.BitsAllocated, []int{8}),
+				tag.SamplesPerPixel: MustNewElement(tag.SamplesPerPixel, []int{3}),
 			}},
 			dataBytes:         []byte{1, 2, 3, 1, 2, 3},
 			expectedPixelData: nil,
@@ -650,12 +650,12 @@ func TestReadNativeFrames_OneBitAllocated(t *testing.T) {
 	}{
 		{
 			Name: "LittleEndian, 4x4, 1 frames, 1 samples/pixel",
-			existingData: Dataset{Elements: []*Element{
-				mustNewElement(tag.Rows, []int{4}),
-				mustNewElement(tag.Columns, []int{4}),
-				mustNewElement(tag.NumberOfFrames, []string{"1"}),
-				mustNewElement(tag.BitsAllocated, []int{1}),
-				mustNewElement(tag.SamplesPerPixel, []int{1}),
+			existingData: Dataset{Elements: map[tag.Tag]*Element{
+				tag.Rows:            MustNewElement(tag.Rows, []int{4}),
+				tag.Columns:         MustNewElement(tag.Columns, []int{4}),
+				tag.NumberOfFrames:  MustNewElement(tag.NumberOfFrames, []string{"1"}),
+				tag.BitsAllocated:   MustNewElement(tag.BitsAllocated, []int{1}),
+				tag.SamplesPerPixel: MustNewElement(tag.SamplesPerPixel, []int{1}),
 			}},
 			data: []byte{0b00010111, 0b10010111},
 			expectedPixelData: &PixelDataInfo{
@@ -677,12 +677,12 @@ func TestReadNativeFrames_OneBitAllocated(t *testing.T) {
 		},
 		{
 			Name: "\"BigEndian\" (maybe), 4x4, 1 frames, 1 samples/pixel",
-			existingData: Dataset{Elements: []*Element{
-				mustNewElement(tag.Rows, []int{4}),
-				mustNewElement(tag.Columns, []int{4}),
-				mustNewElement(tag.NumberOfFrames, []string{"1"}),
-				mustNewElement(tag.BitsAllocated, []int{1}),
-				mustNewElement(tag.SamplesPerPixel, []int{1}),
+			existingData: Dataset{Elements: map[tag.Tag]*Element{
+				tag.Rows:            MustNewElement(tag.Rows, []int{4}),
+				tag.Columns:         MustNewElement(tag.Columns, []int{4}),
+				tag.NumberOfFrames:  MustNewElement(tag.NumberOfFrames, []string{"1"}),
+				tag.BitsAllocated:   MustNewElement(tag.BitsAllocated, []int{1}),
+				tag.SamplesPerPixel: MustNewElement(tag.SamplesPerPixel, []int{1}),
 			}},
 			data: []byte{0b00010111, 0b10010111},
 			expectedPixelData: &PixelDataInfo{
@@ -783,12 +783,12 @@ func BenchmarkReadNativeFrames(b *testing.B) {
 func buildReadNativeFramesInput(rows, cols, numFrames, samplesPerPixel int, b *testing.B) (*Dataset, dicomio.Reader) {
 	b.Helper()
 	dataset := Dataset{
-		Elements: []*Element{
-			mustNewElement(tag.Rows, []int{rows}),
-			mustNewElement(tag.Columns, []int{cols}),
-			mustNewElement(tag.NumberOfFrames, []string{strconv.Itoa(numFrames)}),
-			mustNewElement(tag.BitsAllocated, []int{16}),
-			mustNewElement(tag.SamplesPerPixel, []int{samplesPerPixel}),
+		Elements: map[tag.Tag]*Element{
+			tag.Rows:            MustNewElement(tag.Rows, []int{rows}),
+			tag.Columns:         MustNewElement(tag.Columns, []int{cols}),
+			tag.NumberOfFrames:  MustNewElement(tag.NumberOfFrames, []string{strconv.Itoa(numFrames)}),
+			tag.BitsAllocated:   MustNewElement(tag.BitsAllocated, []int{16}),
+			tag.SamplesPerPixel: MustNewElement(tag.SamplesPerPixel, []int{samplesPerPixel}),
 		},
 	}
 	dcmdata := bytes.Buffer{}

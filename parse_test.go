@@ -10,11 +10,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/suyashkumar/dicom/pkg/tag"
+	"github.com/jamesshenjian/dicom/pkg/tag"
 
-	"github.com/suyashkumar/dicom/pkg/frame"
+	"github.com/jamesshenjian/dicom/pkg/frame"
 
-	"github.com/suyashkumar/dicom"
+	"github.com/jamesshenjian/dicom"
 )
 
 // TestParse is an end-to-end sanity check over DICOMs in testdata/. Currently,
@@ -237,9 +237,9 @@ func BenchmarkParser_NextAPI(b *testing.B) {
 	}
 }
 
-func Example_readFile() {
+func main() {
 	// See also: dicom.Parse, which uses a more generic io.Reader API.
-	dataset, _ := dicom.ParseFile("testdata/1.dcm", nil)
+	dataset, _ := dicom.ParseFile("testdata/CT.9795_7.dcm", nil)
 
 	// Dataset will nicely print the DICOM dataset data out of the box.
 	fmt.Println(dataset)
