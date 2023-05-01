@@ -275,6 +275,15 @@ func (s *SequenceItemValue) Get(tag tag.Tag) (interface{}, error) {
 	return elem.Value.GetValue(), nil
 }
 
+// get the value of nil
+func (s *SequenceItemValue) MustGet(tag tag.Tag) interface{} {
+	elem, ok := s.elements[tag]
+	if !ok {
+		return nil
+	}
+	return elem.Value.GetValue()
+}
+
 // add an element. also has the effect of overwriting a tag which already exist
 func (s *SequenceItemValue) AddElement(atag tag.Tag, elem *Element) {
 	if s.elements == nil {
