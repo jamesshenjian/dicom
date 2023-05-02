@@ -521,7 +521,7 @@ func TestWrite(t *testing.T) {
 					t.Fatalf("Unexpected error state file: %s: %v", file.Name(), err)
 				}
 
-				readDS, err := Parse(f, info.Size(), nil, tc.parseOpts...)
+				readDS, err := Parse(f, info.Size(), nil, nil, tc.parseOpts...)
 				if err != nil {
 					t.Errorf("Parse of written file, unexpected error: %v", err)
 				}

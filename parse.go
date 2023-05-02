@@ -57,13 +57,23 @@ var (
 
 // Parse parses the entire DICOM at the input io.Reader into a Dataset of DICOM Elements. Use this if you are
 // looking to parse the DICOM all at once, instead of element-by-element.
-func Parse(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame, opts ...ParseOption) (Dataset, error) {
+func Parse(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame, acceptedTags []tag.Tag, opts ...ParseOption) (Dataset, error) {
 	p, err := NewParser(in, bytesToRead, frameChan, opts...)
 	if err != nil {
 		return Dataset{}, err
 	}
 
+	if acceptedTags != nil {
+		p.SetAcceptedTags(acceptedTags)
+	}
+
 	for !p.reader.rawReader.IsLimitExhausted() {
+		//In the partial parser case and we already found all the elements needed
+		if p.isPartial && p.parsedTopElemCount >= len(p.dataset.Elements) {
+			debug.Logf("Already found %d elements, break ", p.parsedTopElemCount)
+			break
+		}
+
 		_, err := p.Next()
 		if err != nil {
 			return p.dataset, err
@@ -91,16 +101,33 @@ func ParseFile(filepath string, frameChan chan *frame.Frame, opts ...ParseOption
 		return Dataset{}, err
 	}
 
-	return Parse(f, info.Size(), frameChan, opts...)
+	return Parse(f, info.Size(), frameChan, nil, opts...)
+}
+
+func ParseFileWithAcceptTags(filepath string, acceptedTags ...tag.Tag) (Dataset, error) {
+	f, err := os.Open(filepath)
+	if err != nil {
+		return Dataset{}, err
+	}
+	defer f.Close()
+
+	info, err := f.Stat()
+	if err != nil {
+		return Dataset{}, err
+	}
+
+	return Parse(f, info.Size(), nil, acceptedTags)
 }
 
 // Parser is a struct that allows a user to parse Elements from a DICOM element-by-element using Next(), which may be
 // useful for some streaming processing applications. If you instead just want to parse the whole input DICOM at once,
 // just use the dicom.Parse(...) method.
 type Parser struct {
-	reader   *reader
-	dataset  Dataset
-	metadata Dataset
+	reader             *reader
+	dataset            Dataset
+	isPartial          bool
+	parsedTopElemCount int
+	metadata           Dataset
 	// file is optional, might be populated if reading from an underlying file
 	file         *os.File
 	frameChannel chan *frame.Frame
@@ -158,6 +185,14 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 	return &p, nil
 }
 
+func (p *Parser) SetAcceptedTags(tags []tag.Tag) {
+	for _, atag := range tags {
+		p.dataset.Elements[atag] = nil
+	}
+	p.isPartial = true
+	p.parsedTopElemCount = 0
+}
+
 // Next parses and returns the next top-level element from the DICOM this Parser points to.
 func (p *Parser) Next() (*Element, error) {
 	if !p.reader.moreToRead() {
@@ -174,6 +209,15 @@ func (p *Parser) Next() (*Element, error) {
 	}
 
 	// TODO: add dicom options to only keep track of certain tags
+	if p.isPartial {
+		//for partial parser, check if the element tag already exists
+		//if not, just return, do not add it
+		if _, ok := p.dataset.Elements[elem.Tag]; !ok {
+			return elem, nil
+		}
+		//if yes, increase the found element count
+		p.parsedTopElemCount++
+	}
 
 	if elem.Tag == tag.SpecificCharacterSet {
 		encodingNames := MustGetStrings(elem.Value)

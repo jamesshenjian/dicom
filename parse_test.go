@@ -36,7 +36,7 @@ func TestParse(t *testing.T) {
 				if err != nil {
 					t.Errorf("Unable to stat %s. Error: %v", f.Name(), err)
 				}
-				_, err = dicom.Parse(dcm, info.Size(), nil)
+				_, err = dicom.Parse(dcm, info.Size(), nil, nil)
 				if err != nil {
 					t.Errorf("dicom.Parse(%s) unexpected error: %v", f.Name(), err)
 				}
@@ -193,7 +193,7 @@ func BenchmarkParse(b *testing.B) {
 						b.ResetTimer()
 
 						for i := 0; i < b.N; i++ {
-							_, _ = dicom.Parse(bytes.NewBuffer(data), int64(len(data)), nil, tc.opts...)
+							_, _ = dicom.Parse(bytes.NewBuffer(data), int64(len(data)), nil, nil, tc.opts...)
 						}
 
 					})

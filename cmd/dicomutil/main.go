@@ -162,6 +162,7 @@ func generateImage(fr *frame.Frame, frameIndex int, frameSuffix string, wg *sync
 		}
 	} else {
 		err = jpeg.Encode(f, i, &jpeg.Options{Quality: 100})
+
 		if err != nil {
 			log.Println(err)
 			return
