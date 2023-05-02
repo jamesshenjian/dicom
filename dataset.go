@@ -36,7 +36,7 @@ func NewDataset() *Dataset {
 // FindElementByTag searches through the dataset and returns a pointer to the matching element.
 // It DOES NOT search within Sequences as well.
 func (d *Dataset) FindElementByTag(tag tag.Tag) (*Element, error) {
-	if elem, ok := d.Elements[tag]; ok {
+	if elem, ok := d.Elements[tag]; ok && elem != nil {
 		return elem, nil
 	}
 	return nil, ErrorElementNotFound
