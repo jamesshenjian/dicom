@@ -188,6 +188,15 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 func (p *Parser) SetAcceptedTags(tags []tag.Tag) {
 	for _, atag := range tags {
 		p.dataset.Elements[atag] = nil
+
+		//PixelData parsing is dependent on these other tags
+		if atag == tag.PixelData {
+			p.dataset.Elements[tag.Columns] = nil
+			p.dataset.Elements[tag.Rows] = nil
+			p.dataset.Elements[tag.NumberOfFrames] = nil
+			p.dataset.Elements[tag.BitsAllocated] = nil
+			p.dataset.Elements[tag.SamplesPerPixel] = nil
+		}
 	}
 	p.isPartial = true
 	p.parsedTopElemCount = 0
