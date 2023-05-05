@@ -62,7 +62,7 @@ func main() {
 			if *allowPixelDataVLMismatch {
 				opts = append(opts, dicom.AllowMismatchPixelDataLength())
 			}
-			data, err := dicom.Parse(f, info.Size(), nil, opts...)
+			data, err := dicom.Parse(f, info.Size(), nil, nil, opts...)
 			if err != nil {
 				log.Fatalf("error parsing data: %v", err)
 			}
@@ -111,7 +111,7 @@ func parseWithStreaming(in io.Reader, size int64) *dicom.Dataset {
 	wg.Add(1)
 	go writeStreamingFrames(fc, &wg)
 
-	ds, err := dicom.Parse(in, size, fc)
+	ds, err := dicom.Parse(in, size, fc, nil)
 	if err != nil {
 		log.Fatalf("error parsing: %v", err)
 	}

@@ -75,7 +75,7 @@ func (w *Writer) writeDataset(ds Dataset) error {
 		w.writer.SetTransferSyntax(endian, implicit)
 	}
 
-	for _, elem := range ds.Elements {
+	for _, elem := range mapToSlice(ds.Elements) {
 		if elem.Tag.Group != tag.MetadataGroup {
 			err = writeElement(w.writer, elem, *w.optSet)
 			if err != nil {

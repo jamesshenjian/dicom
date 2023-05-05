@@ -301,10 +301,14 @@ func (s *SequenceItemValue) String() string {
 	return fmt.Sprintf("%+v", s.elements)
 }
 
-// MarshalJSON is the method used to marshal this struct to JSON.
 func (s *SequenceItemValue) MarshalJSON() ([]byte, error) {
-	return json.Marshal(s.elements)
+	return json.Marshal(mapToSlice(s.elements))
 }
+
+// MarshalJSON is the method used to marshal this struct to JSON.
+//func (s *SequenceItemValue) MarshalJSON() ([]byte, error) {
+//	return json.Marshal(s.elements)
+//}
 
 // sequencesValue represents a set of items in a DICOM sequence.
 type sequencesValue struct {

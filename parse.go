@@ -196,6 +196,7 @@ func (p *Parser) SetAcceptedTags(tags []tag.Tag) {
 			p.dataset.Elements[tag.NumberOfFrames] = nil
 			p.dataset.Elements[tag.BitsAllocated] = nil
 			p.dataset.Elements[tag.SamplesPerPixel] = nil
+			p.dataset.Elements[tag.PixelRepresentation] = nil
 		}
 	}
 	p.isPartial = true

@@ -62,17 +62,18 @@ func TestDataset_FlatStatefulIterator(t *testing.T) {
 	cases := []struct {
 		name                 string
 		dataset              Dataset
-		expectedFlatElements map[tag.Tag]*Element
+		expectedFlatElements []*Element
 	}{
 		{
+			//we do not allow same tag to appear multiple times in same file
 			name: "flat dataset",
 			dataset: Dataset{Elements: map[tag.Tag]*Element{
 				tag.PatientName: MustNewElement(tag.PatientName, []string{"Bob", "Smith"}),
-				tag.PatientName: MustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
+				//tag.PatientName: MustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
 			}},
-			expectedFlatElements: map[tag.Tag]*Element{
-				tag.PatientName: MustNewElement(tag.PatientName, []string{"Bob", "Smith"}),
-				tag.PatientName: MustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
+			expectedFlatElements: []*Element{
+				MustNewElement(tag.PatientName, []string{"Bob", "Smith"}),
+				//MustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
 			},
 		},
 		{
@@ -91,9 +92,9 @@ func TestDataset_FlatStatefulIterator(t *testing.T) {
 					},
 				}),
 			}},
-			expectedFlatElements: map[tag.Tag]*Element{
+			expectedFlatElements: []*Element{
 				// First, expect the entire SQ element
-				tag.AddOtherSequence: makeSequenceElement(tag.AddOtherSequence, [][]*Element{
+				makeSequenceElement(tag.AddOtherSequence, [][]*Element{
 					// Item 1
 					{
 						MustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
@@ -106,15 +107,15 @@ func TestDataset_FlatStatefulIterator(t *testing.T) {
 					},
 				}),
 				// Then expect the inner elements
-				tag.PatientName: MustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
+				MustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
 				// Inner SQ element
-				tag.AnatomicRegionSequence: makeSequenceElement(tag.AnatomicRegionSequence, [][]*Element{
+				makeSequenceElement(tag.AnatomicRegionSequence, [][]*Element{
 					{
 						MustNewElement(tag.PatientName, []string{"Bob", "Smith"}),
 					},
 				}),
 				// Inner element of the inner SQ
-				tag.PatientName: MustNewElement(tag.PatientName, []string{"Bob", "Smith"}),
+				MustNewElement(tag.PatientName, []string{"Bob", "Smith"}),
 			},
 		},
 	}

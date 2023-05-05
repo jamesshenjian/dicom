@@ -2,6 +2,7 @@ package dicom
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -31,6 +32,27 @@ func NewDataset() *Dataset {
 	d := new(Dataset)
 	d.Elements = make(map[tag.Tag]*Element)
 	return d
+}
+
+func mapToSlice(elemMap map[tag.Tag]*Element) []*Element {
+	var elems []*Element
+	var pixelDataElement *Element
+	for _, elem := range elemMap {
+		if elem.Tag == tag.PixelData {
+			pixelDataElement = elem
+		} else {
+			elems = append(elems, elem)
+		}
+	}
+	//put PixelData the last since its parsing is dependent other elements
+	if pixelDataElement != nil {
+		elems = append(elems, pixelDataElement)
+	}
+	return elems
+}
+
+func (d *Dataset) MarshalJSON() ([]byte, error) {
+	return json.Marshal(mapToSlice(d.Elements))
 }
 
 // FindElementByTag searches through the dataset and returns a pointer to the matching element.
@@ -226,7 +248,7 @@ func (d *Dataset) FindElementByTagNested(tag tag.Tag) (*Element, error) {
 func (d *Dataset) FlatIterator() <-chan *Element {
 	elemChan := make(chan *Element)
 	go func() {
-		flatElementsIterator(d.Elements, elemChan)
+		flatElementsIterator(mapToSlice(d.Elements), elemChan)
 		close(elemChan)
 	}()
 	return elemChan
@@ -244,12 +266,12 @@ func ExhaustElementChannel(c <-chan *Element) {
 	}
 }
 
-func flatElementsIterator(elems map[tag.Tag]*Element, elemChan chan<- *Element) {
+func flatElementsIterator(elems []*Element, elemChan chan<- *Element) {
 	for _, elem := range elems {
 		if elem.Value.ValueType() == Sequences {
 			elemChan <- elem
 			for _, seqItem := range elem.Value.GetValue().([]*SequenceItemValue) {
-				flatElementsIterator(seqItem.elements, elemChan)
+				flatElementsIterator(mapToSlice(seqItem.elements), elemChan)
 			}
 			continue
 		}
