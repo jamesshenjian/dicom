@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/jamesshenjian/dicom/pkg/frame"
 	"github.com/jamesshenjian/dicom/pkg/tag"
@@ -282,6 +283,46 @@ func (s *SequenceItemValue) MustGet(tag tag.Tag) interface{} {
 		return nil
 	}
 	return elem.Value.GetValue()
+}
+
+func (s *SequenceItemValue) MustGetInt(tag tag.Tag) int {
+	elem, ok := s.elements[tag]
+	if !ok {
+		log.Panic(ErrorElementNotFound)
+	}
+	vtype := elem.Value.ValueType()
+	if vtype == Strings {
+		val, err := strconv.ParseInt(elem.Value.GetValue().([]string)[0], 10, 32)
+		if err != nil {
+			log.Panic(err)
+		}
+		return int(val)
+	} else if vtype == Ints {
+		return elem.Value.GetValue().([]int)[0]
+	} else {
+		log.Panic("Value type not int")
+	}
+	return 0
+}
+
+func (s *SequenceItemValue) MustGetFloat(tag tag.Tag) float32 {
+	elem, ok := s.elements[tag]
+	if !ok {
+		log.Panic(ErrorElementNotFound)
+	}
+	vtype := elem.Value.ValueType()
+	if vtype == Strings {
+		val, err := strconv.ParseFloat(elem.Value.GetValue().([]string)[0], 32)
+		if err != nil {
+			log.Panic(err)
+		}
+		return float32(val)
+	} else if vtype == Floats {
+		return float32(elem.Value.GetValue().([]float64)[0])
+	} else {
+		log.Panic("Value type not float")
+	}
+	return 0.0
 }
 
 // add an element. also has the effect of overwriting a tag which already exist
