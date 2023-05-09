@@ -285,6 +285,20 @@ func (s *SequenceItemValue) MustGet(tag tag.Tag) interface{} {
 	return elem.Value.GetValue()
 }
 
+func (s *SequenceItemValue) MustGetString(tag tag.Tag) string {
+	elem, ok := s.elements[tag]
+	if !ok {
+		log.Panic(ErrorElementNotFound)
+	}
+	vtype := elem.Value.ValueType()
+	if vtype == Strings {
+		return elem.Value.GetValue().([]string)[0]
+	} else {
+		log.Panic("Value type not int")
+	}
+	return ""
+}
+
 func (s *SequenceItemValue) MustGetInt(tag tag.Tag) int {
 	elem, ok := s.elements[tag]
 	if !ok {
@@ -325,8 +339,8 @@ func (s *SequenceItemValue) MustGetFloat(tag tag.Tag) float32 {
 	return 0.0
 }
 
-// add an element. also has the effect of overwriting a tag which already exist
-func (s *SequenceItemValue) AddElement(atag tag.Tag, elem *Element) {
+// set an element. also has the effect of overwriting a tag which already exist
+func (s *SequenceItemValue) Set(atag tag.Tag, elem *Element) {
 	if s.elements == nil {
 		s.elements = make(map[tag.Tag]*Element)
 	}
