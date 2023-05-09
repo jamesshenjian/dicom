@@ -111,6 +111,58 @@ func NewValue(data interface{}) (Value, error) {
 	}
 }
 
+func convertNumbersToStrings(data interface{}) []string {
+	switch data.(type) {
+	case []int:
+		d := data.([]int)
+		strs := make([]string, len(d))
+		for i := 0; i < len(strs); i++ {
+			strs[i] = fmt.Sprint(d[i])
+		}
+		return strs
+	case []float64:
+		d := data.([]float64)
+		strs := make([]string, len(d))
+		for i := 0; i < len(strs); i++ {
+			strs[i] = fmt.Sprint(d[i])
+		}
+		return strs
+	}
+	return nil
+}
+
+func NewValueWithVR(data interface{}, vr string) (Value, error) {
+	switch data.(type) {
+	case []int:
+		if vr == "IS" || vr == "DS" {
+			return &stringsValue{value: convertNumbersToStrings(data)}, nil
+		} else {
+			return &intsValue{value: data.([]int)}, nil
+		}
+	case []string:
+		return &stringsValue{value: data.([]string)}, nil
+	case []byte:
+		return &bytesValue{value: data.([]byte)}, nil
+	case PixelDataInfo:
+		return &pixelDataValue{PixelDataInfo: data.(PixelDataInfo)}, nil
+	case []float64:
+		if vr == "DS" {
+			return &stringsValue{value: convertNumbersToStrings(data)}, nil
+		} else {
+			return &floatsValue{value: data.([]float64)}, nil
+		}
+	case []map[tag.Tag]*Element:
+		items := data.([]map[tag.Tag]*Element)
+		sequenceItems := make([]*SequenceItemValue, 0, len(items))
+		for _, item := range items {
+			sequenceItems = append(sequenceItems, &SequenceItemValue{elements: item})
+		}
+		return &sequencesValue{value: sequenceItems}, nil
+	default:
+		return nil, ErrorUnexpectedDataType
+	}
+}
+
 func mustNewValue(data interface{}) Value {
 	v, err := NewValue(data)
 	if err != nil {
@@ -129,7 +181,7 @@ func NewElement(t tag.Tag, data interface{}) (*Element, error) {
 	}
 	rawVR := tagInfo.VR
 
-	value, err := NewValue(data)
+	value, err := NewValueWithVR(data, rawVR)
 	if err != nil {
 		return nil, err
 	}
