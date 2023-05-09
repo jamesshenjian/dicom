@@ -191,11 +191,15 @@ func (d *Dataset) MustGetString(tag tag.Tag) string {
 }
 
 // create a new element or update an existing element with same tag
-func (d *Dataset) Set(atag tag.Tag, elem *Element) {
+func (d *Dataset) AddElement(elem *Element) {
 	if d.Elements == nil {
 		d.Elements = make(map[tag.Tag]*Element)
 	}
-	d.Elements[atag] = elem
+	d.Elements[elem.Tag] = elem
+}
+
+func (d *Dataset) Set(t tag.Tag, data interface{}) {
+	d.AddElement(MustNewElement(t, data))
 }
 
 func (d *Dataset) transferSyntax() (binary.ByteOrder, bool, error) {

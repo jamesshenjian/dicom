@@ -412,14 +412,14 @@ func (s *SequenceItemValue) MustGetFloat(tag tag.Tag) float32 {
 }
 
 // set an element. also has the effect of overwriting a tag which already exist
-func (s *SequenceItemValue) Set(atag tag.Tag, elem *Element) {
+func (s *SequenceItemValue) AddElement(elem *Element) {
 	if s.elements == nil {
 		s.elements = make(map[tag.Tag]*Element)
 	}
-	if _, ok := s.elements[atag]; ok {
-		log.Println("Warning: overwrite an existing element with same tag")
+	if _, ok := s.elements[elem.Tag]; ok {
+		log.Println("Warning: overwrite an existing element with same tag ", elem.Tag.String())
 	}
-	s.elements[atag] = elem
+	s.elements[elem.Tag] = elem
 }
 
 // String is used to get a string representation of this struct.
