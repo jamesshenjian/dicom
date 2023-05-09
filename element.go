@@ -165,6 +165,26 @@ func mustNewPrivateElement(t tag.Tag, rawVR string, data interface{}) *Element {
 	}
 }
 
+func MakeSequenceElement(tg tag.Tag, items [][]*Element) *Element {
+	sequenceItems := make([]*SequenceItemValue, 0, len(items))
+	for _, item := range items {
+		itemMap := make(map[tag.Tag]*Element)
+		for i := 0; i < len(item); i++ {
+			itemMap[item[i].Tag] = item[i]
+		}
+		sequenceItems = append(sequenceItems, &SequenceItemValue{elements: itemMap})
+	}
+
+	return &Element{
+		Tag:                    tg,
+		ValueRepresentation:    tag.VRSequence,
+		RawValueRepresentation: "SQ",
+		Value: &sequencesValue{
+			value: sequenceItems,
+		},
+	}
+}
+
 // ValueType is a type that represents the type of a Value. It is an enumerated
 // set, and the set of values can be found below.
 type ValueType int

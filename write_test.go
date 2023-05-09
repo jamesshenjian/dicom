@@ -87,7 +87,7 @@ func TestWrite(t *testing.T) {
 				tag.MediaStorageSOPInstanceUID: MustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
 				tag.TransferSyntaxUID:          MustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
 				tag.PatientName:                MustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
-				tag.AddOtherSequence: makeSequenceElement(tag.AddOtherSequence, [][]*Element{
+				tag.AddOtherSequence: MakeSequenceElement(tag.AddOtherSequence, [][]*Element{
 					// Item 1.
 					{
 						{
@@ -137,7 +137,7 @@ func TestWrite(t *testing.T) {
 				tag.MediaStorageSOPInstanceUID: MustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
 				tag.TransferSyntaxUID:          MustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
 				tag.PatientName:                MustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
-				tag.AddOtherSequence: makeSequenceElement(tag.AddOtherSequence, [][]*Element{
+				tag.AddOtherSequence: MakeSequenceElement(tag.AddOtherSequence, [][]*Element{
 					// Item 1.
 					{
 						{
@@ -188,7 +188,7 @@ func TestWrite(t *testing.T) {
 				tag.MediaStorageSOPInstanceUID: MustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
 				tag.TransferSyntaxUID:          MustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
 				tag.PatientName:                MustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
-				tag.AddOtherSequence: makeSequenceElement(tag.AddOtherSequence, [][]*Element{
+				tag.AddOtherSequence: MakeSequenceElement(tag.AddOtherSequence, [][]*Element{
 					// Item 1.
 					{
 						{
@@ -200,7 +200,7 @@ func TestWrite(t *testing.T) {
 							},
 						},
 						// Nested Sequence.
-						makeSequenceElement(tag.AnatomicRegionSequence, [][]*Element{
+						MakeSequenceElement(tag.AnatomicRegionSequence, [][]*Element{
 							{
 								{
 									Tag:                    tag.PatientName,
@@ -224,7 +224,7 @@ func TestWrite(t *testing.T) {
 				tag.MediaStorageSOPInstanceUID: MustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
 				tag.TransferSyntaxUID:          MustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
 				tag.PatientName:                MustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
-				tag.AddOtherSequence: makeSequenceElement(tag.AddOtherSequence, [][]*Element{
+				tag.AddOtherSequence: MakeSequenceElement(tag.AddOtherSequence, [][]*Element{
 					// Item 1.
 					{
 						{
@@ -236,7 +236,7 @@ func TestWrite(t *testing.T) {
 							},
 						},
 						// Nested Sequence.
-						makeSequenceElement(tag.AnatomicRegionSequence, [][]*Element{
+						MakeSequenceElement(tag.AnatomicRegionSequence, [][]*Element{
 							{
 								{
 									Tag:                    tag.PatientName,

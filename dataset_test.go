@@ -8,26 +8,6 @@ import (
 	"github.com/jamesshenjian/dicom/pkg/tag"
 )
 
-func makeSequenceElement(tg tag.Tag, items [][]*Element) *Element {
-	sequenceItems := make([]*SequenceItemValue, 0, len(items))
-	for _, item := range items {
-		itemMap := make(map[tag.Tag]*Element)
-		for i := 0; i < len(item); i++ {
-			itemMap[item[i].Tag] = item[i]
-		}
-		sequenceItems = append(sequenceItems, &SequenceItemValue{elements: itemMap})
-	}
-
-	return &Element{
-		Tag:                    tg,
-		ValueRepresentation:    tag.VRSequence,
-		RawValueRepresentation: "SQ",
-		Value: &sequencesValue{
-			value: sequenceItems,
-		},
-	}
-}
-
 func TestDataset_FindElementByTag(t *testing.T) {
 	data := Dataset{
 		Elements: map[tag.Tag]*Element{
@@ -79,12 +59,12 @@ func TestDataset_FlatStatefulIterator(t *testing.T) {
 		{
 			name: "nested dataset",
 			dataset: Dataset{Elements: map[tag.Tag]*Element{
-				tag.AddOtherSequence: makeSequenceElement(tag.AddOtherSequence, [][]*Element{
+				tag.AddOtherSequence: MakeSequenceElement(tag.AddOtherSequence, [][]*Element{
 					// Item 1
 					{
 						MustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
 						// Nested Sequence.
-						makeSequenceElement(tag.AnatomicRegionSequence, [][]*Element{
+						MakeSequenceElement(tag.AnatomicRegionSequence, [][]*Element{
 							{
 								MustNewElement(tag.PatientName, []string{"Bob", "Smith"}),
 							},
@@ -94,12 +74,12 @@ func TestDataset_FlatStatefulIterator(t *testing.T) {
 			}},
 			expectedFlatElements: []*Element{
 				// First, expect the entire SQ element
-				makeSequenceElement(tag.AddOtherSequence, [][]*Element{
+				MakeSequenceElement(tag.AddOtherSequence, [][]*Element{
 					// Item 1
 					{
 						MustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
 						// Nested Sequence.
-						makeSequenceElement(tag.AnatomicRegionSequence, [][]*Element{
+						MakeSequenceElement(tag.AnatomicRegionSequence, [][]*Element{
 							{
 								MustNewElement(tag.PatientName, []string{"Bob", "Smith"}),
 							},
@@ -109,7 +89,7 @@ func TestDataset_FlatStatefulIterator(t *testing.T) {
 				// Then expect the inner elements
 				MustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
 				// Inner SQ element
-				makeSequenceElement(tag.AnatomicRegionSequence, [][]*Element{
+				MakeSequenceElement(tag.AnatomicRegionSequence, [][]*Element{
 					{
 						MustNewElement(tag.PatientName, []string{"Bob", "Smith"}),
 					},
@@ -144,7 +124,7 @@ func ExampleDataset_FlatIterator() {
 		Elements: map[tag.Tag]*Element{
 			tag.Rows:             MustNewElement(tag.Rows, []int{100}),
 			tag.Columns:          MustNewElement(tag.Columns, []int{100}),
-			tag.AddOtherSequence: makeSequenceElement(tag.AddOtherSequence, nestedData),
+			tag.AddOtherSequence: MakeSequenceElement(tag.AddOtherSequence, nestedData),
 		},
 	}
 
@@ -177,7 +157,7 @@ func ExampleDataset_FlatIteratorWithExhaustAllElements() {
 		Elements: map[tag.Tag]*Element{
 			tag.Rows:             MustNewElement(tag.Rows, []int{100}),
 			tag.Columns:          MustNewElement(tag.Columns, []int{100}),
-			tag.AddOtherSequence: makeSequenceElement(tag.AddOtherSequence, nestedData),
+			tag.AddOtherSequence: MakeSequenceElement(tag.AddOtherSequence, nestedData),
 		},
 	}
 
@@ -225,7 +205,7 @@ func ExampleDataset_FlatStatefulIterator() {
 					value: []int{200},
 				},
 			},
-			tag.AddOtherSequence: makeSequenceElement(tag.AddOtherSequence, nestedData),
+			tag.AddOtherSequence: MakeSequenceElement(tag.AddOtherSequence, nestedData),
 		},
 	}
 
