@@ -448,7 +448,7 @@ func writeValue(w dicomio.Writer, t tag.Tag, value Value, valueType ValueType, v
 	case SequenceItem:
 		return writeSequenceItem(w, t, v.(map[tag.Tag]*Element), vr, vl, opts)
 	case Sequences:
-		return writeSequence(w, t, v.([]*SequenceItemValue), vr, vl, opts)
+		return writeSequence2(w, t, v.([]*SequenceItemValue), vr, vl, opts)
 	case Floats:
 		return writeFloats(w, value, vr)
 	default:
@@ -637,6 +637,32 @@ func writeSequence(w dicomio.Writer, t tag.Tag, values []*SequenceItemValue, vr 
 	}
 	w.SetTransferSyntax(oldBO, oldImplicit) // Return TS to what it was before.
 
+	return nil
+}
+
+func writeSequence2(w dicomio.Writer, t tag.Tag, values []*SequenceItemValue, vr string, vl uint32, opts writeOptSet) error {
+	bo, implicit := w.GetTransferSyntax()
+	for _, siv := range values {
+		var valueData = &bytes.Buffer{}
+		subWriter := dicomio.NewWriter(valueData, bo, implicit)
+		for _, elem := range siv.elements {
+			if err := writeElement(subWriter, elem, opts); err != nil {
+				return err
+			}
+		}
+		length := uint32(len(valueData.Bytes()))
+		item := &Element{
+			Tag:         tag.Item,
+			ValueLength: length,
+		}
+		if err := writeElement(w, item, opts); err != nil {
+			return err
+		}
+		err := w.WriteBytes(valueData.Bytes())
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
