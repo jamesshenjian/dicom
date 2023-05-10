@@ -348,10 +348,10 @@ func writeVRVL(w dicomio.Writer, t tag.Tag, vr string, vl uint32) error {
 		vl = tag.VLUndefinedLength
 	}
 
-	if vr == vrraw.Sequence {
-		// We are going to write these out with undefined length always.
-		vl = tag.VLUndefinedLength
-	}
+	//if vr == vrraw.Sequence {
+	// We are going to write these out with undefined length always.
+	//	vl = tag.VLUndefinedLength
+	//}
 
 	// We want to make sure there is any VR unless this is a Sequence delimiter.
 	if len(vr) != 2 && vl != tag.VLUndefinedLength && t != tag.SequenceDelimitationItem && t != tag.ItemDelimitationItem {
