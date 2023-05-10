@@ -106,7 +106,7 @@ func TestDataset_FlatStatefulIterator(t *testing.T) {
 			for iter := tc.dataset.FlatStatefulIterator(); iter.HasNext(); {
 				gotElems = append(gotElems, iter.Next())
 			}
-			if diff := cmp.Diff(tc.expectedFlatElements, gotElems, cmp.AllowUnexported(allValues...)); diff != "" {
+			if diff := cmp.Diff(SortElements(tc.expectedFlatElements), SortElements(gotElems), cmp.AllowUnexported(allValues...)); diff != "" {
 				t.Errorf("FlatStatefulIterator(%v) returned unexpected set of elements: %v", tc.dataset, diff)
 			}
 		})

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -34,6 +35,19 @@ func NewDataset() *Dataset {
 	return d
 }
 
+type ElementSlice []*Element
+
+func (x ElementSlice) Len() int { return len(x) }
+func (x ElementSlice) Less(i, j int) bool {
+	return x[i].Tag.Group < x[j].Tag.Group || (x[i].Tag.Group == x[j].Tag.Group && x[i].Tag.Element < x[j].Tag.Element)
+}
+func (x ElementSlice) Swap(i, j int) { x[i], x[j] = x[j], x[i] }
+
+func SortElements(arr []*Element) []*Element {
+	sort.Sort(ElementSlice(arr))
+	return arr
+}
+
 func mapToSlice(elemMap map[tag.Tag]*Element) []*Element {
 	var elems []*Element
 	var pixelDataElement *Element
@@ -44,6 +58,7 @@ func mapToSlice(elemMap map[tag.Tag]*Element) []*Element {
 			elems = append(elems, elem)
 		}
 	}
+	SortElements(elems)
 	//put PixelData the last since its parsing is dependent other elements
 	if pixelDataElement != nil {
 		elems = append(elems, pixelDataElement)
@@ -365,18 +380,18 @@ type elementWithLevel struct {
 func (d *Dataset) flatIteratorWithLevel() <-chan *elementWithLevel {
 	elemChan := make(chan *elementWithLevel)
 	go func() {
-		flatElementsIteratorWithLevel(d.Elements, 0, elemChan)
+		flatElementsIteratorWithLevel(mapToSlice(d.Elements), 0, elemChan)
 		close(elemChan)
 	}()
 	return elemChan
 }
 
-func flatElementsIteratorWithLevel(elems map[tag.Tag]*Element, level uint, eWithLevelChan chan<- *elementWithLevel) {
+func flatElementsIteratorWithLevel(elems []*Element, level uint, eWithLevelChan chan<- *elementWithLevel) {
 	for _, elem := range elems {
 		if elem.Value.ValueType() == Sequences {
 			eWithLevelChan <- &elementWithLevel{elem, level}
 			for _, seqItem := range elem.Value.GetValue().([]*SequenceItemValue) {
-				flatElementsIteratorWithLevel(seqItem.elements, level+1, eWithLevelChan)
+				flatElementsIteratorWithLevel(mapToSlice(seqItem.elements), level+1, eWithLevelChan)
 			}
 			continue
 		}

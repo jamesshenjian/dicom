@@ -752,7 +752,7 @@ func setUndefinedLength(e *Element) *Element {
 
 // this test don't work any more since written map and read map might have elements in different order
 // TestWriteElement tests a dataset written using writer.WriteElement can be parsed into an identical dataset using NewParser.
-/*
+
 func TestWriteElement(t *testing.T) {
 	writeDS := Dataset{Elements: map[tag.Tag]*Element{
 		tag.MediaStorageSOPClassUID:        MustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
@@ -769,7 +769,7 @@ func TestWriteElement(t *testing.T) {
 	w := NewWriter(&buf)
 	w.SetTransferSyntax(binary.LittleEndian, true)
 
-	for _, e := range writeDS.Elements {
+	for _, e := range mapToSlice(writeDS.Elements) {
 		err := w.WriteElement(e)
 		if err != nil {
 			t.Errorf("error in writing element %s: %s", e.String(), err.Error())
@@ -781,7 +781,7 @@ func TestWriteElement(t *testing.T) {
 		t.Fatalf("failed to create parser: %v", err)
 	}
 
-	for _, writtenElem := range writeDS.Elements {
+	for _, writtenElem := range mapToSlice(writeDS.Elements) {
 		readElem, err := p.Next()
 		if err != nil {
 			t.Errorf("error in reading element %s: %s", readElem.String(), err.Error())
@@ -792,4 +792,3 @@ func TestWriteElement(t *testing.T) {
 		}
 	}
 }
-*/
