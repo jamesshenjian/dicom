@@ -49,20 +49,14 @@ func SortElements(arr []*Element) []*Element {
 }
 
 func mapToSlice(elemMap map[tag.Tag]*Element) []*Element {
-	var elems []*Element
-	var pixelDataElement *Element
+	elems := make([]*Element, len(elemMap))
+	i := 0
 	for _, elem := range elemMap {
-		if elem.Tag == tag.PixelData {
-			pixelDataElement = elem
-		} else {
-			elems = append(elems, elem)
-		}
+		elems[i] = elem
+		i++
 	}
 	SortElements(elems)
-	//put PixelData the last since its parsing is dependent other elements
-	if pixelDataElement != nil {
-		elems = append(elems, pixelDataElement)
-	}
+
 	return elems
 }
 
