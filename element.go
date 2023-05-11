@@ -422,6 +422,10 @@ func (s *SequenceItemValue) AddElement(elem *Element) {
 	s.elements[elem.Tag] = elem
 }
 
+func (s *SequenceItemValue) Add(t tag.Tag, value interface{}) {
+	s.AddElement(MustNewElement(t, value))
+}
+
 // String is used to get a string representation of this struct.
 func (s *SequenceItemValue) String() string {
 	// TODO: consider adding more sophisticated formatting
