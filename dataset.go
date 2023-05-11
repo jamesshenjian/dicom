@@ -81,6 +81,14 @@ func (d *Dataset) Get(tag tag.Tag) (interface{}, error) {
 	return elem.Value.GetValue(), nil
 }
 
+func (d *Dataset) TryGet(tag tag.Tag) interface{} {
+	elem, err := d.FindElementByTag(tag)
+	if err != nil {
+		return nil
+	}
+	return elem.Value.GetValue()
+}
+
 func (d *Dataset) MustGetInt(tag tag.Tag) int {
 	elem, err := d.FindElementByTag(tag)
 	if err != nil {
@@ -205,6 +213,15 @@ func (d *Dataset) AddElement(elem *Element) {
 		d.Elements = make(map[tag.Tag]*Element)
 	}
 	d.Elements[elem.Tag] = elem
+}
+
+func (d *Dataset) AddElements(elems ...*Element) {
+	if d.Elements == nil {
+		d.Elements = make(map[tag.Tag]*Element)
+	}
+	for _, elem := range elems {
+		d.Elements[elem.Tag] = elem
+	}
 }
 
 func (d *Dataset) Set(t tag.Tag, data interface{}) {
