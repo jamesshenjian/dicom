@@ -645,7 +645,7 @@ func writeSequence2(w dicomio.Writer, t tag.Tag, values []*SequenceItemValue, vr
 	for _, siv := range values {
 		var valueData = &bytes.Buffer{}
 		subWriter := dicomio.NewWriter(valueData, bo, implicit)
-		for _, elem := range siv.elements {
+		for _, elem := range mapToSlice(siv.elements) {
 			if err := writeElement(subWriter, elem, opts); err != nil {
 				return err
 			}

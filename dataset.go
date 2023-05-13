@@ -49,11 +49,11 @@ func SortElements(arr []*Element) []*Element {
 }
 
 func mapToSlice(elemMap map[tag.Tag]*Element) []*Element {
-	elems := make([]*Element, len(elemMap))
-	i := 0
+	var elems []*Element
 	for _, elem := range elemMap {
-		elems[i] = elem
-		i++
+		if elem != nil {
+			elems = append(elems, elem)
+		}
 	}
 	SortElements(elems)
 
