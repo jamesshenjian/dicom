@@ -200,7 +200,7 @@ func (d *Dataset) MustGetString(tag tag.Tag) string {
 	}
 	vtype := elem.Value.ValueType()
 	if vtype == Strings {
-		return elem.Value.GetValue().([]string)[0]
+		return strings.Join(elem.Value.GetValue().([]string), " ")
 	} else {
 		log.Panic("Value type not string")
 	}
