@@ -144,7 +144,7 @@ func (r *reader) readHeader() (map[tag.Tag]*Element, error) {
 		return nil, err
 	}
 	if string(data[128:]) != magicWord {
-		return nil, nil
+		return nil, ErrorMagicWord
 	}
 
 	err = r.rawReader.Skip(128 + 4) // skip preamble + magic word
