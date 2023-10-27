@@ -50,6 +50,14 @@ func (r *reader) readTag() (*tag.Tag, error) {
 	if gerr == nil && eerr == nil {
 		return &tag.Tag{Group: group, Element: element}, nil
 	}
+	// If the error is an io.EOF, return the error directly instead of the compound error later.
+	// Once we target go1.20 we can use errors.Join: https://pkg.go.dev/errors#Join
+	if errors.Is(gerr, io.EOF) {
+		return nil, gerr
+	}
+	if errors.Is(eerr, io.EOF) {
+		return nil, eerr
+	}
 	return nil, fmt.Errorf("error reading tag: %v %v", gerr, eerr)
 }
 
@@ -159,28 +167,65 @@ func (r *reader) readHeader() (map[tag.Tag]*Element, error) {
 		return nil, err
 	}
 
+	metaElems := make(map[tag.Tag]*Element)
+	metaElems[maybeMetaLen.Tag] = maybeMetaLen
+
+	metaElementGroupLengthDefined := true
 	if maybeMetaLen.Tag != tag.FileMetaInformationGroupLength || maybeMetaLen.Value.ValueType() != Ints {
-		return nil, ErrorMetaElementGroupLength
+		// MetaInformationGroupLength is not present or of the wrong value type.
+		if !r.opts.allowMissingMetaElementGroupLength {
+			return nil, ErrorMetaElementGroupLength
+		}
+		metaElementGroupLengthDefined = false
 	}
 
-	metaLen := maybeMetaLen.Value.GetValue().([]int)[0]
+	if metaElementGroupLengthDefined {
+		metaLen := maybeMetaLen.Value.GetValue().([]int)[0]
 
-	metaElems := make(map[tag.Tag]*Element, metaLen) // TODO: maybe set capacity to a reasonable initial size
+		//metaElems := make(map[tag.Tag]*Element, metaLen) // TODO: maybe set capacity to a reasonable initial size
 
-	// Read the metadata elements
-	err = r.rawReader.PushLimit(int64(metaLen))
-	if err != nil {
-		return nil, err
-	}
-	defer r.rawReader.PopLimit()
-	for !r.rawReader.IsLimitExhausted() {
-		elem, err := r.readElement(nil, nil)
+		// Read the metadata elements
+		err = r.rawReader.PushLimit(int64(metaLen))
 		if err != nil {
-			// TODO: see if we can skip over malformed elements somehow
 			return nil, err
 		}
-		// log.Printf("Metadata Element: %s\n", elem)
-		metaElems[elem.Tag] = elem
+		defer r.rawReader.PopLimit()
+		for !r.rawReader.IsLimitExhausted() {
+			elem, err := r.readElement(nil, nil)
+			if err != nil {
+				// TODO: see if we can skip over malformed elements somehow
+				return nil, err
+			}
+			// log.Printf("Metadata Element: %s\n", elem)
+			metaElems[elem.Tag] = elem
+		}
+	} else {
+		// We cannot use the limit functionality
+		debug.Log("Proceeding without metadata group length")
+		for {
+			// Lets peek into the tag field until we get to end-of-header
+			group_bytes, err := r.rawReader.Peek(2)
+			if err != nil {
+				return nil, ErrorMetaElementGroupLength
+			}
+			var group uint16
+			buff := bytes.NewBuffer(group_bytes)
+			if err := binary.Read(buff, binary.LittleEndian, &group); err != nil {
+				return nil, err
+			}
+			debug.Logf("header-group: %v", group)
+			// Only read group 2 data
+			if group != 0x0002 {
+				break
+			}
+			elem, err := r.readElement(nil, nil)
+			if err != nil {
+				// TODO: see if we can skip over malformed elements somehow
+				return nil, err
+			}
+			metaElems[elem.Tag] = elem
+			//metaElems = append(metaElems, elem)
+		}
 	}
 	return metaElems, nil
 }
@@ -218,7 +263,7 @@ func (r *reader) readPixelData(vl uint32, d *Dataset, fc chan<- *frame.Frame) (V
 				fc <- &f
 			}
 
-			image.Frames = append(image.Frames, f)
+			image.Frames = append(image.Frames, &f)
 		}
 		image.IntentionallySkipped = r.opts.skipPixelData
 		return &pixelDataValue{PixelDataInfo: image}, nil
@@ -318,7 +363,7 @@ func makeErrorPixelData(reader io.Reader, vl uint32, fc chan<- *frame.Frame, par
 	}
 	image := PixelDataInfo{
 		ParseErr: parseErr,
-		Frames:   []frame.Frame{f},
+		Frames:   []*frame.Frame{&f},
 	}
 	return &image, nil
 }
@@ -397,7 +442,7 @@ func (r *reader) readNativeFrames(parsedData *Dataset, fc chan<- *frame.Frame, v
 	image := PixelDataInfo{
 		IsEncapsulated: false,
 	}
-	image.Frames = make([]frame.Frame, nFrames)
+	image.Frames = make([]*frame.Frame, nFrames)
 	bo := r.rawReader.ByteOrder()
 	pixelBuf := make([]byte, bytesAllocated)
 	for frameIdx := 0; frameIdx < nFrames; frameIdx++ {
@@ -442,7 +487,7 @@ func (r *reader) readNativeFrames(parsedData *Dataset, fc chan<- *frame.Frame, v
 				currentFrame.NativeData.Data[pixel] = buf[pixel*samplesPerPixel : (pixel+1)*samplesPerPixel]
 			}
 		}
-		image.Frames[frameIdx] = currentFrame
+		image.Frames[frameIdx] = &currentFrame
 		if fc != nil {
 			fc <- &currentFrame // write the current frame to the frame channel
 		}

@@ -292,7 +292,7 @@ func TestWrite(t *testing.T) {
 				tag.SamplesPerPixel:            MustNewElement(tag.SamplesPerPixel, []int{1}),
 				tag.PixelData: MustNewElement(tag.PixelData, PixelDataInfo{
 					IsEncapsulated: false,
-					Frames: []frame.Frame{
+					Frames: []*frame.Frame{
 						{
 							Encapsulated: false,
 							NativeData: frame.NativeFrame{
@@ -322,7 +322,7 @@ func TestWrite(t *testing.T) {
 				tag.SamplesPerPixel:            MustNewElement(tag.SamplesPerPixel, []int{1}),
 				tag.PixelData: MustNewElement(tag.PixelData, PixelDataInfo{
 					IsEncapsulated: false,
-					Frames: []frame.Frame{
+					Frames: []*frame.Frame{
 						{
 							Encapsulated: false,
 							NativeData: frame.NativeFrame{
@@ -350,7 +350,7 @@ func TestWrite(t *testing.T) {
 				tag.SamplesPerPixel:            MustNewElement(tag.SamplesPerPixel, []int{1}),
 				tag.PixelData: MustNewElement(tag.PixelData, PixelDataInfo{
 					IsEncapsulated: false,
-					Frames: []frame.Frame{
+					Frames: []*frame.Frame{
 						{
 							Encapsulated: false,
 							NativeData: frame.NativeFrame{
@@ -378,7 +378,7 @@ func TestWrite(t *testing.T) {
 				tag.SamplesPerPixel:            MustNewElement(tag.SamplesPerPixel, []int{2}),
 				tag.PixelData: MustNewElement(tag.PixelData, PixelDataInfo{
 					IsEncapsulated: false,
-					Frames: []frame.Frame{
+					Frames: []*frame.Frame{
 						{
 							Encapsulated: false,
 							NativeData: frame.NativeFrame{
@@ -411,7 +411,7 @@ func TestWrite(t *testing.T) {
 				tag.BitsAllocated:              MustNewElement(tag.BitsAllocated, []int{8}),
 				tag.PixelData: setUndefinedLength(MustNewElement(tag.PixelData, PixelDataInfo{
 					IsEncapsulated: true,
-					Frames: []frame.Frame{
+					Frames: []*frame.Frame{
 						{
 							Encapsulated:     true,
 							EncapsulatedData: frame.EncapsulatedFrame{Data: []byte{1, 2, 3, 4}},
@@ -432,7 +432,7 @@ func TestWrite(t *testing.T) {
 				tag.BitsAllocated:              MustNewElement(tag.BitsAllocated, []int{8}),
 				tag.PixelData: setUndefinedLength(MustNewElement(tag.PixelData, PixelDataInfo{
 					IsEncapsulated: true,
-					Frames: []frame.Frame{
+					Frames: []*frame.Frame{
 						{
 							Encapsulated:     true,
 							EncapsulatedData: frame.EncapsulatedFrame{Data: []byte{1, 2, 3, 4}},

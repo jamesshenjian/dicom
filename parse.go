@@ -55,9 +55,17 @@ var (
 	ErrorMismatchPixelDataLength = errors.New("the size calculated from DICOM elements and the PixelData element's VL are mismatched")
 )
 
+func Parse(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame, acceptedTags []tag.Tag, opts ...ParseOption) (Dataset, error) {
+	return parseInternal(in, bytesToRead, frameChan, acceptedTags, opts...)
+}
+
+func ParseUntilEOF(in io.Reader, frameChan chan *frame.Frame, acceptedTags []tag.Tag, opts ...ParseOption) (Dataset, error) {
+	return parseInternal(in, dicomio.LimitReadUntilEOF, frameChan, acceptedTags, opts...)
+}
+
 // Parse parses the entire DICOM at the input io.Reader into a Dataset of DICOM Elements. Use this if you are
 // looking to parse the DICOM all at once, instead of element-by-element.
-func Parse(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame, acceptedTags []tag.Tag, opts ...ParseOption) (Dataset, error) {
+func parseInternal(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame, acceptedTags []tag.Tag, opts ...ParseOption) (Dataset, error) {
 	p, err := NewParser(in, bytesToRead, frameChan, opts...)
 	if err != nil {
 		return Dataset{}, err
@@ -76,6 +84,13 @@ func Parse(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame, accepte
 
 		_, err := p.Next()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				// exiting on EOF
+				err = nil
+				break
+			}
+
+			// exit on error
 			return p.dataset, err
 		}
 	}
@@ -101,7 +116,7 @@ func ParseFile(filepath string, frameChan chan *frame.Frame, opts ...ParseOption
 		return Dataset{}, err
 	}
 
-	return Parse(f, info.Size(), frameChan, nil, opts...)
+	return parseInternal(f, info.Size(), frameChan, nil, opts...)
 }
 
 func ParseFileWithAcceptTags(filepath string, acceptedTags ...tag.Tag) (Dataset, error) {
@@ -116,7 +131,7 @@ func ParseFileWithAcceptTags(filepath string, acceptedTags ...tag.Tag) (Dataset,
 		return Dataset{}, err
 	}
 
-	return Parse(f, info.Size(), nil, acceptedTags)
+	return parseInternal(f, info.Size(), nil, acceptedTags)
 }
 
 // Parser is a struct that allows a user to parse Elements from a DICOM element-by-element using Next(), which may be
@@ -261,10 +276,11 @@ type ParseOption func(*parseOptSet)
 
 // parseOptSet represents the flattened option set after all ParseOptions have been applied.
 type parseOptSet struct {
-	skipMetadataReadOnNewParserInit bool
-	allowMismatchPixelDataLength    bool
-	skipPixelData                   bool
-	skipProcessingPixelDataValue    bool
+	skipMetadataReadOnNewParserInit    bool
+	allowMismatchPixelDataLength       bool
+	skipPixelData                      bool
+	skipProcessingPixelDataValue       bool
+	allowMissingMetaElementGroupLength bool
 }
 
 func toParseOptSet(opts ...ParseOption) parseOptSet {
@@ -279,6 +295,14 @@ func toParseOptSet(opts ...ParseOption) parseOptSet {
 func AllowMismatchPixelDataLength() ParseOption {
 	return func(set *parseOptSet) {
 		set.allowMismatchPixelDataLength = true
+	}
+}
+
+// AllowMissingMetaElementGroupLength allows parser to work around missing metaelement group length tag (0x0002,0x0000) by reading elements only
+// in group 2.
+func AllowMissingMetaElementGroupLength() ParseOption {
+	return func(set *parseOptSet) {
+		set.allowMissingMetaElementGroupLength = true
 	}
 }
 
@@ -307,10 +331,13 @@ func SkipPixelData() ParseOption {
 // SkipProcessingPixelDataValue will attempt to skip processing the _value_
 // of any PixelData elements. Unlike SkipPixelData(), this means the PixelData
 // bytes will still be read into the Dataset, and can be written back out via
-// this library's write functionality. But, if possible, the value will be read
-// in as raw bytes with no further processing instead of being parsed. In the
-// future, we may be able to extend this functionality to support on-demand
-// processing of elements elsewhere in the library.
+// this library's write functionality. Specifically, if this option is set,
+// a PixelData element will be added to the dataset with the
+// PixelDataInfo.IntentionallyUnprocessed = true, and the raw bytes of the
+// entire PixelData element stored in PixelDataInfo.UnprocessedValueData.
+//
+// In the future, we may be able to extend this functionality to support
+// on-demand processing of elements elsewhere in the library.
 func SkipProcessingPixelDataValue() ParseOption {
 	return func(set *parseOptSet) {
 		set.skipProcessingPixelDataValue = true
